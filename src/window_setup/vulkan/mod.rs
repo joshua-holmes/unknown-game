@@ -65,6 +65,7 @@ fn get_graphics_device(vk_instance: Arc<Instance>, vk_surface: Arc<Surface>) -> 
                         queue_family_index,
                         ..Default::default()
                     }],
+                    enabled_extensions: device_extensions,
                     ..Default::default()
                 }
             )
