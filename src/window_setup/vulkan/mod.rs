@@ -2,9 +2,9 @@ use std::{error::Error, sync::Arc};
 
 use vulkano::{
     instance::{Instance, InstanceCreateInfo},
-    swapchain::Surface,
+    swapchain::{Surface, Swapchain, SwapchainCreateInfo},
     Version, VulkanLibrary,
-    device::{DeviceExtensions, QueueFlags, Queue, physical::{PhysicalDevice, PhysicalDeviceType}, DeviceCreateInfo, QueueCreateInfo, Device}, VulkanError
+    device::{DeviceExtensions, QueueFlags, Queue, physical::{PhysicalDevice, PhysicalDeviceType}, DeviceCreateInfo, QueueCreateInfo, Device}, VulkanError, image::Image
 };
 use winit::{event_loop::EventLoop, window::Window};
 
@@ -74,14 +74,34 @@ fn get_graphics_device(vk_instance: Arc<Instance>, vk_surface: Arc<Surface>) -> 
     Ok((device, queues.next().unwrap()))
 }
 
+fn create_swapchain(device: Arc<Device>, vk_surface: Arc<Surface>, window: Arc<Window>) -> Result<(Arc<Swapchain>, Vec<Arc<Image>>), VulkanApiError> {
+    let capabilities = device
+        .physical_device()
+        .surface_capabilities(&vk_surface, Default::default())?;
+    let (image_format, image_color_space) = device.physical_device().surface_formats(&vk_surface, Default::default())?[0];
+    Ok(Swapchain::new(
+        device.clone(),
+        vk_surface.clone(),
+        SwapchainCreateInfo {
+            min_image_count: capabilities.min_image_count + 1,
+            image_format,
+            image_color_space,
+            image_extent: window.inner_size().into(),
+            composite_alpha: capabilities.supported_composite_alpha.into_iter().next().unwrap(), // TODO: setup error handling
+            ..Default::default()
+        }
+    )?)
+}
+
 pub fn init(event_loop: &EventLoop<()>, window: Arc<Window>) -> Result<(), VulkanApiError> {
     // init vulkan and window
     let (vk_instance, vk_surface) = init_vulkan_and_window(event_loop, window.clone())?;
 
     // get graphics device
-    let (device, queue) = get_graphics_device(vk_instance, vk_surface)?;
+    let (device, queue) = get_graphics_device(vk_instance.clone(), vk_surface.clone())?;
 
     // create swapchain
+    let (mut swapchain, images) = create_swapchain(device.clone(), vk_surface.clone(), window.clone())?;
 
     // setup basic triangle
 
