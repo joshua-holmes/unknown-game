@@ -8,7 +8,7 @@ use vulkano::{
     image::Image,
     instance::{Instance, InstanceCreateInfo},
     swapchain::{Surface, Swapchain, SwapchainCreateInfo},
-    Version, VulkanError, VulkanLibrary, buffer::{Buffer, BufferCreateInfo, BufferUsage}, memory::allocator::{StandardMemoryAllocator, AllocationCreateInfo, MemoryTypeFilter, MemoryAllocator},
+    Version, VulkanError, VulkanLibrary, buffer::{Buffer, BufferCreateInfo, BufferUsage}, memory::allocator::{StandardMemoryAllocator, AllocationCreateInfo, MemoryTypeFilter, MemoryAllocator}, render_pass::RenderPass,
 };
 use winit::{event_loop::EventLoop, window::Window};
 
@@ -138,6 +138,24 @@ fn create_vertex_buffer(memory_allocator: Arc<MemoryAllocator>, triangle: geomet
     )?
 }
 
+fn create_render_pass(device: Arc<Device>, vk_swapchain: Arc<Swapchain>) -> Arc<RenderPass> {
+    vulkano::single_pass_renderpass!(
+        device,
+        attachments: {
+            clear_color: {
+                format: vk_swapchain.image_format(),
+                samples: 1,
+                load_op: Clear,
+                store_op: Store,
+            },
+        },
+        pass: {
+            color: [clear_color],
+            depth_stencil: {}
+        },
+    )?
+}
+
 pub fn init(event_loop: &EventLoop<()>, window: Arc<Window>) -> Result<(), VulkanApiError> {
     // init vulkan and window
     let (vk_instance, vk_surface) = init_vulkan_and_window(event_loop, window.clone())?;
@@ -149,7 +167,7 @@ pub fn init(event_loop: &EventLoop<()>, window: Arc<Window>) -> Result<(), Vulka
     let memory_allocator = Arc::new(StandardMemoryAllocator::new_default(device.clone()));
 
     // create swapchain
-    let (mut swapchain, images) =
+    let (mut vk_swapchain, images) =
         create_swapchain(device.clone(), vk_surface.clone(), window.clone())?;
 
     // setup basic triangle
@@ -159,6 +177,7 @@ pub fn init(event_loop: &EventLoop<()>, window: Arc<Window>) -> Result<(), Vulka
     let vertex_buffer = create_vertex_buffer(memory_allocator.clone(), my_triangle);
 
     // setup render pass
+    let render_pass = create_render_pass(device.clone(), vk_swapchain.clone());
 
     // create image view
 
