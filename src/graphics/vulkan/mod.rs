@@ -9,7 +9,7 @@ use vulkano::{
     image::{Image, view::ImageView},
     instance::{Instance, InstanceCreateInfo},
     swapchain::{Surface, Swapchain, SwapchainCreateInfo},
-    Version, VulkanError, VulkanLibrary, buffer::{Buffer, BufferCreateInfo, BufferUsage}, memory::allocator::{StandardMemoryAllocator, AllocationCreateInfo, MemoryTypeFilter, MemoryAllocator, GenericMemoryAllocator}, render_pass::{RenderPass, Framebuffer, FramebufferCreateInfo}, pipeline::graphics::vertex_input::Vertex,
+    Version, VulkanError, VulkanLibrary, buffer::{Buffer, BufferCreateInfo, BufferUsage}, memory::allocator::{StandardMemoryAllocator, AllocationCreateInfo, MemoryTypeFilter, MemoryAllocator, GenericMemoryAllocator}, render_pass::{RenderPass, Framebuffer, FramebufferCreateInfo}, pipeline::graphics::{vertex_input::Vertex, viewport::Viewport},
 };
 use winit::{event_loop::EventLoop, window::Window};
 
@@ -204,6 +204,11 @@ pub fn init(event_loop: &EventLoop<()>, window: Arc<Window>) -> Result<(), Vulka
     load_shaders::load_fragment(device.clone());
 
     // setup viewport
+    let mut viewport = Viewport {
+        offset: [0.0, 0.0],
+        extent: [1024.0, 1024.0],
+        depth_range: 0.0..=1.0,
+    };
 
     // create command buffers
 
