@@ -8,7 +8,7 @@ use vulkano::{
     image::Image,
     instance::{Instance, InstanceCreateInfo},
     swapchain::{Surface, Swapchain, SwapchainCreateInfo},
-    Version, VulkanError, VulkanLibrary, buffer::{Buffer, BufferCreateInfo, BufferUsage}, memory::allocator::{StandardMemoryAllocator, AllocationCreateInfo, MemoryTypeFilter},
+    Version, VulkanError, VulkanLibrary, buffer::{Buffer, BufferCreateInfo, BufferUsage}, memory::allocator::{StandardMemoryAllocator, AllocationCreateInfo, MemoryTypeFilter, MemoryAllocator},
 };
 use winit::{event_loop::EventLoop, window::Window};
 
@@ -123,6 +123,21 @@ fn create_swapchain(
     )?)
 }
 
+fn create_vertex_buffer(memory_allocator: Arc<MemoryAllocator>, triangle: geometry::Triangle) {
+     Buffer::from_iter(
+        memory_allocator,
+        BufferCreateInfo {
+            usage: BufferUsage::VERTEX_BUFFER,
+            ..Default::default()
+        },
+        AllocationCreateInfo {
+            memory_type_filter: MemoryTypeFilter::PREFER_DEVICE | MemoryTypeFilter::HOST_SEQUENTIAL_WRITE,
+            ..Default::default()
+        },
+        triangle.move_verticies_to_vec(),
+    )?
+}
+
 pub fn init(event_loop: &EventLoop<()>, window: Arc<Window>) -> Result<(), VulkanApiError> {
     // init vulkan and window
     let (vk_instance, vk_surface) = init_vulkan_and_window(event_loop, window.clone())?;
@@ -141,18 +156,7 @@ pub fn init(event_loop: &EventLoop<()>, window: Arc<Window>) -> Result<(), Vulka
     let mut my_triangle = geometry::Triangle::new([0.5, 0.5], [-0.3, 0.], [0., -0.7]);
 
     // setup vertex buffer
-    let vertex_buffer = Buffer::from_iter(
-        memory_allocator.clone(),
-        BufferCreateInfo {
-            usage: BufferUsage::VERTEX_BUFFER,
-            ..Default::default()
-        },
-        AllocationCreateInfo {
-            memory_type_filter: MemoryTypeFilter::PREFER_DEVICE | MemoryTypeFilter::HOST_SEQUENTIAL_WRITE,
-            ..Default::default()
-        },
-        my_triangle.move_verticies_to_vec(),
-    )?;
+    let vertex_buffer = create_vertex_buffer(memory_allocator.clone(), my_triangle);
 
     // setup render pass
 
