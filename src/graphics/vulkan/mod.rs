@@ -1,14 +1,15 @@
 use std::{error::Error, sync::Arc};
 
 use vulkano::{
+    buffer::{subbuffer::Subbuffer, BufferContents},
     device::{
         physical::{PhysicalDevice, PhysicalDeviceType},
         Device, DeviceCreateInfo, DeviceExtensions, Queue, QueueCreateInfo, QueueFlags,
     },
-    image::Image,
+    image::{Image, view::ImageView},
     instance::{Instance, InstanceCreateInfo},
     swapchain::{Surface, Swapchain, SwapchainCreateInfo},
-    Version, VulkanError, VulkanLibrary, buffer::{Buffer, BufferCreateInfo, BufferUsage}, memory::allocator::{StandardMemoryAllocator, AllocationCreateInfo, MemoryTypeFilter, MemoryAllocator}, render_pass::RenderPass,
+    Version, VulkanError, VulkanLibrary, buffer::{Buffer, BufferCreateInfo, BufferUsage}, memory::allocator::{StandardMemoryAllocator, AllocationCreateInfo, MemoryTypeFilter, MemoryAllocator, GenericMemoryAllocator}, render_pass::{RenderPass, Framebuffer, FramebufferCreateInfo}, pipeline::graphics::vertex_input::Vertex,
 };
 use winit::{event_loop::EventLoop, window::Window};
 
@@ -156,6 +157,20 @@ fn create_render_pass(device: Arc<Device>, vk_swapchain: Arc<Swapchain>) -> Resu
     )?)
 }
 
+fn get_framebuffers(images: &Vec<Arc<Image>>, render_pass: Arc<RenderPass>) -> Result<Vec<Arc<Framebuffer>>, VulkanApiError> {
+    Ok(images.iter().map(|i| {
+        let view = ImageView::new_default(i.clone()).unwrap(); // TODO: setup with error handling
+        Framebuffer::new(
+            render_pass,
+            FramebufferCreateInfo {
+                attachments: vec![view],
+                ..Default::default()
+            },
+        ).unwrap() // TODO: setup with error handling
+    })
+    .collect())
+}
+
 pub fn init(event_loop: &EventLoop<()>, window: Arc<Window>) -> Result<(), VulkanApiError> {
     // init vulkan and window
     let (vk_instance, vk_surface) = init_vulkan_and_window(event_loop, window.clone())?;
@@ -180,6 +195,7 @@ pub fn init(event_loop: &EventLoop<()>, window: Arc<Window>) -> Result<(), Vulka
     let render_pass = create_render_pass(device.clone(), vk_swapchain.clone())?;
 
     // create image view
+    let framebuffers = get_framebuffers(&images, render_pass.clone());
 
     // load shaders
 
