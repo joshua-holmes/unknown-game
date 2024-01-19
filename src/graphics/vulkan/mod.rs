@@ -8,9 +8,11 @@ use vulkano::{
     image::Image,
     instance::{Instance, InstanceCreateInfo},
     swapchain::{Surface, Swapchain, SwapchainCreateInfo},
-    Version, VulkanError, VulkanLibrary,
+    Version, VulkanError, VulkanLibrary, buffer::{Buffer, BufferCreateInfo, BufferUsage}, memory::allocator::{StandardMemoryAllocator, AllocationCreateInfo, MemoryTypeFilter},
 };
 use winit::{event_loop::EventLoop, window::Window};
+
+use crate::geometry;
 
 type VulkanApiError = Box<dyn Error>;
 
@@ -128,13 +130,29 @@ pub fn init(event_loop: &EventLoop<()>, window: Arc<Window>) -> Result<(), Vulka
     // get graphics device
     let (device, queue) = get_graphics_device(vk_instance.clone(), vk_surface.clone())?;
 
+    // create memory allocator
+    let memory_allocator = Arc::new(StandardMemoryAllocator::new_default(device.clone()));
+
     // create swapchain
     let (mut swapchain, images) =
         create_swapchain(device.clone(), vk_surface.clone(), window.clone())?;
 
     // setup basic triangle
+    let mut my_triangle = geometry::Triangle::new([0.5, 0.5], [-0.3, 0.], [0., -0.7]);
 
     // setup vertex buffer
+    let vertex_buffer = Buffer::from_iter(
+        memory_allocator.clone(),
+        BufferCreateInfo {
+            usage: BufferUsage::VERTEX_BUFFER,
+            ..Default::default()
+        },
+        AllocationCreateInfo {
+            memory_type_filter: MemoryTypeFilter::PREFER_DEVICE | MemoryTypeFilter::HOST_SEQUENTIAL_WRITE,
+            ..Default::default()
+        },
+        my_triangle.move_verticies_to_vec(),
+    )?;
 
     // setup render pass
 
