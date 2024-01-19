@@ -123,8 +123,8 @@ fn create_swapchain(
     )?)
 }
 
-fn create_vertex_buffer(memory_allocator: Arc<MemoryAllocator>, triangle: geometry::Triangle) {
-     Buffer::from_iter(
+fn create_vertex_buffer(memory_allocator: Arc<StandardMemoryAllocator>, triangle: geometry::Triangle) -> Result<Subbuffer<[geometry::Vertex]>, VulkanApiError> {
+     Ok(Buffer::from_iter(
         memory_allocator,
         BufferCreateInfo {
             usage: BufferUsage::VERTEX_BUFFER,
@@ -135,11 +135,11 @@ fn create_vertex_buffer(memory_allocator: Arc<MemoryAllocator>, triangle: geomet
             ..Default::default()
         },
         triangle.move_verticies_to_vec(),
-    )?
+    )?)
 }
 
-fn create_render_pass(device: Arc<Device>, vk_swapchain: Arc<Swapchain>) -> Arc<RenderPass> {
-    vulkano::single_pass_renderpass!(
+fn create_render_pass(device: Arc<Device>, vk_swapchain: Arc<Swapchain>) -> Result<Arc<RenderPass>, VulkanApiError> {
+    Ok(vulkano::single_pass_renderpass!(
         device,
         attachments: {
             clear_color: {
@@ -153,7 +153,7 @@ fn create_render_pass(device: Arc<Device>, vk_swapchain: Arc<Swapchain>) -> Arc<
             color: [clear_color],
             depth_stencil: {}
         },
-    )?
+    )?)
 }
 
 pub fn init(event_loop: &EventLoop<()>, window: Arc<Window>) -> Result<(), VulkanApiError> {
@@ -174,10 +174,10 @@ pub fn init(event_loop: &EventLoop<()>, window: Arc<Window>) -> Result<(), Vulka
     let mut my_triangle = geometry::Triangle::new([0.5, 0.5], [-0.3, 0.], [0., -0.7]);
 
     // setup vertex buffer
-    let vertex_buffer = create_vertex_buffer(memory_allocator.clone(), my_triangle);
+    let vertex_buffer = create_vertex_buffer(memory_allocator.clone(), my_triangle)?;
 
     // setup render pass
-    let render_pass = create_render_pass(device.clone(), vk_swapchain.clone());
+    let render_pass = create_render_pass(device.clone(), vk_swapchain.clone())?;
 
     // create image view
 
