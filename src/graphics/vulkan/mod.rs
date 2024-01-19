@@ -15,6 +15,8 @@ use winit::{event_loop::EventLoop, window::Window};
 
 use crate::geometry;
 
+mod load_shaders;
+
 type VulkanApiError = Box<dyn Error>;
 
 fn init_vulkan_and_window(
@@ -198,6 +200,8 @@ pub fn init(event_loop: &EventLoop<()>, window: Arc<Window>) -> Result<(), Vulka
     let framebuffers = get_framebuffers(&images, render_pass.clone());
 
     // load shaders
+    load_shaders::load_vertex(device.clone());
+    load_shaders::load_fragment(device.clone());
 
     // setup viewport
 

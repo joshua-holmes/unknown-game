@@ -2,11 +2,11 @@ vulkano_shaders::shader! {
     shaders: {
         vertex: {
             ty: "vertex",
-            path: "src/vulkan/shaders/shader.vert"
+            path: "src/graphics/vulkan/shaders/shader.vert"
         },
         fragment: {
             ty: "fragment",
-            path: "src/vulkan/shaders/shader.frag"
+            path: "src/graphics/vulkan/shaders/shader.frag"
         }
     }
 }
