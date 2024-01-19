@@ -8,7 +8,7 @@ pub enum MyWindowError {
 
 }
 
-pub fn init() {
+pub fn init_window() {
     let event_loop = EventLoop::new();
     let window = {
         let window = Window::new(&event_loop)?;
