@@ -15,11 +15,16 @@ use vulkano::{
     },
     pipeline::{
         graphics::{
+            color_blend::ColorBlendState,
+            input_assembly::InputAssemblyState,
+            multisample::MultisampleState,
+            rasterization::RasterizationState,
             vertex_input::{Vertex, VertexDefinition},
-            viewport::{Viewport, ViewportState}, GraphicsPipelineCreateInfo, input_assembly::InputAssemblyState, rasterization::RasterizationState, multisample::MultisampleState, color_blend::ColorBlendState,
+            viewport::{Viewport, ViewportState},
+            GraphicsPipelineCreateInfo,
         },
         layout::{PipelineDescriptorSetLayoutCreateInfo, PipelineLayoutCreateInfo},
-        PipelineLayout, PipelineShaderStageCreateInfo, GraphicsPipeline,
+        GraphicsPipeline, PipelineLayout, PipelineShaderStageCreateInfo,
     },
     render_pass::{Framebuffer, FramebufferCreateInfo, RenderPass, Subpass},
     shader::ShaderModule,
@@ -243,7 +248,7 @@ fn get_graphics_pipeline(
             color_blend_state: Some(ColorBlendState::default()),
             subpass: Some(subpass.into()),
             ..GraphicsPipelineCreateInfo::layout(layout)
-        }
+        },
     )?)
 }
 
@@ -284,14 +289,14 @@ pub fn init(event_loop: &EventLoop<()>, window: Arc<Window>) -> Result<(), Vulka
         depth_range: 0.0..=1.0,
     };
 
-    //
+    // graphics pipeline
     let pipeline = get_graphics_pipeline(
         device.clone(),
         vs.clone(),
         fs.clone(),
         render_pass.clone(),
         viewport.clone(),
-    );
+    )?;
 
     // create command buffers
 
