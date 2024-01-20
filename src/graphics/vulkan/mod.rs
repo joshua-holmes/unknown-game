@@ -2,14 +2,29 @@ use std::{error::Error, sync::Arc};
 
 use vulkano::{
     buffer::{subbuffer::Subbuffer, BufferContents},
+    buffer::{Buffer, BufferCreateInfo, BufferUsage},
     device::{
         physical::{PhysicalDevice, PhysicalDeviceType},
         Device, DeviceCreateInfo, DeviceExtensions, Queue, QueueCreateInfo, QueueFlags,
     },
-    image::{Image, view::ImageView},
+    image::{view::ImageView, Image},
     instance::{Instance, InstanceCreateInfo},
+    memory::allocator::{
+        AllocationCreateInfo, GenericMemoryAllocator, MemoryAllocator, MemoryTypeFilter,
+        StandardMemoryAllocator,
+    },
+    pipeline::{
+        graphics::{
+            vertex_input::{Vertex, VertexDefinition},
+            viewport::{Viewport, ViewportState}, GraphicsPipelineCreateInfo, input_assembly::InputAssemblyState, rasterization::RasterizationState, multisample::MultisampleState, color_blend::ColorBlendState,
+        },
+        layout::{PipelineDescriptorSetLayoutCreateInfo, PipelineLayoutCreateInfo},
+        PipelineLayout, PipelineShaderStageCreateInfo, GraphicsPipeline,
+    },
+    render_pass::{Framebuffer, FramebufferCreateInfo, RenderPass, Subpass},
+    shader::ShaderModule,
     swapchain::{Surface, Swapchain, SwapchainCreateInfo},
-    Version, VulkanError, VulkanLibrary, buffer::{Buffer, BufferCreateInfo, BufferUsage}, memory::allocator::{StandardMemoryAllocator, AllocationCreateInfo, MemoryTypeFilter, MemoryAllocator, GenericMemoryAllocator}, render_pass::{RenderPass, Framebuffer, FramebufferCreateInfo}, pipeline::graphics::{vertex_input::Vertex, viewport::Viewport},
+    Version, VulkanError, VulkanLibrary,
 };
 use winit::{event_loop::EventLoop, window::Window};
 
@@ -126,22 +141,29 @@ fn create_swapchain(
     )?)
 }
 
-fn create_vertex_buffer(memory_allocator: Arc<StandardMemoryAllocator>, triangle: geometry::Triangle) -> Result<Subbuffer<[geometry::Vertex]>, VulkanApiError> {
-     Ok(Buffer::from_iter(
+fn create_vertex_buffer(
+    memory_allocator: Arc<StandardMemoryAllocator>,
+    triangle: geometry::Triangle,
+) -> Result<Subbuffer<[geometry::Vertex]>, VulkanApiError> {
+    Ok(Buffer::from_iter(
         memory_allocator,
         BufferCreateInfo {
             usage: BufferUsage::VERTEX_BUFFER,
             ..Default::default()
         },
         AllocationCreateInfo {
-            memory_type_filter: MemoryTypeFilter::PREFER_DEVICE | MemoryTypeFilter::HOST_SEQUENTIAL_WRITE,
+            memory_type_filter: MemoryTypeFilter::PREFER_DEVICE
+                | MemoryTypeFilter::HOST_SEQUENTIAL_WRITE,
             ..Default::default()
         },
         triangle.move_verticies_to_vec(),
     )?)
 }
 
-fn create_render_pass(device: Arc<Device>, vk_swapchain: Arc<Swapchain>) -> Result<Arc<RenderPass>, VulkanApiError> {
+fn create_render_pass(
+    device: Arc<Device>,
+    vk_swapchain: Arc<Swapchain>,
+) -> Result<Arc<RenderPass>, VulkanApiError> {
     Ok(vulkano::single_pass_renderpass!(
         device,
         attachments: {
@@ -159,18 +181,70 @@ fn create_render_pass(device: Arc<Device>, vk_swapchain: Arc<Swapchain>) -> Resu
     )?)
 }
 
-fn get_framebuffers(images: &Vec<Arc<Image>>, render_pass: Arc<RenderPass>) -> Result<Vec<Arc<Framebuffer>>, VulkanApiError> {
-    Ok(images.iter().map(|i| {
-        let view = ImageView::new_default(i.clone()).unwrap(); // TODO: setup with error handling
-        Framebuffer::new(
-            render_pass,
-            FramebufferCreateInfo {
-                attachments: vec![view],
+fn get_framebuffers(
+    images: &Vec<Arc<Image>>,
+    render_pass: Arc<RenderPass>,
+) -> Result<Vec<Arc<Framebuffer>>, VulkanApiError> {
+    Ok(images
+        .iter()
+        .map(|i| {
+            let view = ImageView::new_default(i.clone()).unwrap(); // TODO: setup with error handling
+            Framebuffer::new(
+                render_pass,
+                FramebufferCreateInfo {
+                    attachments: vec![view],
+                    ..Default::default()
+                },
+            )
+            .unwrap() // TODO: setup with error handling
+        })
+        .collect())
+}
+
+fn get_graphics_pipeline(
+    device: Arc<Device>,
+    vs: Arc<ShaderModule>,
+    fs: Arc<ShaderModule>,
+    render_pass: Arc<RenderPass>,
+    viewport: Viewport,
+) -> Result<Arc<GraphicsPipeline>, VulkanApiError> {
+    let vs_entry_point = vs.entry_point("main").unwrap();
+    let fs_entry_point = fs.entry_point("main").unwrap();
+
+    let vertex_input_state =
+        geometry::Vertex::per_vertex().definition(&vs_entry_point.info().input_interface)?;
+
+    let stages = [
+        PipelineShaderStageCreateInfo::new(vs_entry_point),
+        PipelineShaderStageCreateInfo::new(fs_entry_point),
+    ];
+
+    let layout = PipelineLayout::new(
+        device.clone(),
+        PipelineDescriptorSetLayoutCreateInfo::from_stages(&stages)
+            .into_pipeline_layout_create_info(device.clone())?,
+    )?;
+
+    let subpass = Subpass::from(render_pass, 0).unwrap(); // TODO: setup with error handling
+
+    Ok(GraphicsPipeline::new(
+        device,
+        None,
+        GraphicsPipelineCreateInfo {
+            stages: stages.into_iter().collect(),
+            vertex_input_state: Some(vertex_input_state),
+            input_assembly_state: Some(InputAssemblyState::default()),
+            viewport_state: Some(ViewportState {
+                viewports: [viewport].into_iter().collect(),
                 ..Default::default()
-            },
-        ).unwrap() // TODO: setup with error handling
-    })
-    .collect())
+            }),
+            rasterization_state: Some(RasterizationState::default()),
+            multisample_state: Some(MultisampleState::default()),
+            color_blend_state: Some(ColorBlendState::default()),
+            subpass: Some(subpass.into()),
+            ..GraphicsPipelineCreateInfo::layout(layout)
+        }
+    )?)
 }
 
 pub fn init(event_loop: &EventLoop<()>, window: Arc<Window>) -> Result<(), VulkanApiError> {
@@ -200,8 +274,8 @@ pub fn init(event_loop: &EventLoop<()>, window: Arc<Window>) -> Result<(), Vulka
     let framebuffers = get_framebuffers(&images, render_pass.clone());
 
     // load shaders
-    load_shaders::load_vertex(device.clone());
-    load_shaders::load_fragment(device.clone());
+    let vs = load_shaders::load_vertex(device.clone())?;
+    let fs = load_shaders::load_fragment(device.clone())?;
 
     // setup viewport
     let mut viewport = Viewport {
@@ -209,6 +283,15 @@ pub fn init(event_loop: &EventLoop<()>, window: Arc<Window>) -> Result<(), Vulka
         extent: [1024.0, 1024.0],
         depth_range: 0.0..=1.0,
     };
+
+    //
+    let pipeline = get_graphics_pipeline(
+        device.clone(),
+        vs.clone(),
+        fs.clone(),
+        render_pass.clone(),
+        viewport.clone(),
+    );
 
     // create command buffers
 
