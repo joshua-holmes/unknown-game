@@ -1,16 +1,16 @@
 use std::{error::Error, sync::Arc};
 
 use vulkano::{
-    buffer::{subbuffer::Subbuffer, BufferContents},
+    buffer::subbuffer::Subbuffer,
     buffer::{Buffer, BufferCreateInfo, BufferUsage},
     device::{
-        physical::{PhysicalDevice, PhysicalDeviceType},
+        physical::PhysicalDeviceType,
         Device, DeviceCreateInfo, DeviceExtensions, Queue, QueueCreateInfo, QueueFlags,
     },
     image::{view::ImageView, Image},
     instance::{Instance, InstanceCreateInfo},
     memory::allocator::{
-        AllocationCreateInfo, GenericMemoryAllocator, MemoryAllocator, MemoryTypeFilter,
+        AllocationCreateInfo, MemoryTypeFilter,
         StandardMemoryAllocator,
     },
     pipeline::{
@@ -21,9 +21,9 @@ use vulkano::{
             rasterization::RasterizationState,
             vertex_input::{Vertex, VertexDefinition},
             viewport::{Viewport, ViewportState},
-            GraphicsPipelineCreateInfo, self,
+            GraphicsPipelineCreateInfo,
         },
-        layout::{PipelineDescriptorSetLayoutCreateInfo, PipelineLayoutCreateInfo},
+        layout::PipelineDescriptorSetLayoutCreateInfo,
         GraphicsPipeline, PipelineLayout, PipelineShaderStageCreateInfo,
     },
     render_pass::{Framebuffer, FramebufferCreateInfo, RenderPass, Subpass},
