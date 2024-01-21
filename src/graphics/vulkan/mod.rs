@@ -21,7 +21,7 @@ use vulkano::{
             rasterization::RasterizationState,
             vertex_input::{Vertex, VertexDefinition},
             viewport::{Viewport, ViewportState},
-            GraphicsPipelineCreateInfo,
+            GraphicsPipelineCreateInfo, self,
         },
         layout::{PipelineDescriptorSetLayoutCreateInfo, PipelineLayoutCreateInfo},
         GraphicsPipeline, PipelineLayout, PipelineShaderStageCreateInfo,
@@ -29,7 +29,7 @@ use vulkano::{
     render_pass::{Framebuffer, FramebufferCreateInfo, RenderPass, Subpass},
     shader::ShaderModule,
     swapchain::{Surface, Swapchain, SwapchainCreateInfo},
-    Version, VulkanError, VulkanLibrary,
+    Version, VulkanError, VulkanLibrary, command_buffer::{PrimaryAutoCommandBuffer, allocator::{StandardCommandBufferAllocator, StandardCommandBufferAllocatorCreateInfo}, AutoCommandBufferBuilder, CommandBufferUsage, RenderPassBeginInfo, SubpassBeginInfo, SubpassEndInfo}, format::ClearValue,
 };
 use winit::{event_loop::EventLoop, window::Window};
 
@@ -252,6 +252,44 @@ fn get_graphics_pipeline(
     )?)
 }
 
+fn create_command_buffers(
+    device: Arc<Device>,
+    queue: Arc<Queue>,
+    pipeline: Arc<GraphicsPipeline>,
+    framebuffers: &Vec<Arc<Framebuffer>>,
+    vertex_buffer: &Subbuffer<[geometry::Vertex]>
+) -> Result<Vec<Arc<PrimaryAutoCommandBuffer>>, VulkanApiError> {
+    let command_buffer_allocator = StandardCommandBufferAllocator::new(
+        device,
+        StandardCommandBufferAllocatorCreateInfo::default(),
+    );
+
+    Ok(framebuffers.iter().map(|framebuffer| {
+        let mut builder = AutoCommandBufferBuilder::primary(
+            &command_buffer_allocator,
+            queue.queue_family_index(),
+            CommandBufferUsage::MultipleSubmit
+        )
+        .unwrap(); // TODO: setup proper error handling
+
+        builder
+            .begin_render_pass(
+                RenderPassBeginInfo {
+                    clear_values: vec![Some(ClearValue::Float([0., 1., 0., 1.]))],
+                    ..RenderPassBeginInfo::framebuffer(framebuffer.clone())
+                },
+                SubpassBeginInfo::default(),
+            ).unwrap()
+            .bind_pipeline_graphics(pipeline).unwrap()
+            .bind_vertex_buffers(0, vertex_buffer.clone()).unwrap()
+            .draw(vertex_buffer.len() as u32, 1, 0, 0).unwrap()
+            .end_render_pass(SubpassEndInfo::default()).unwrap();
+
+        builder.build().unwrap()
+    })
+    .collect())
+}
+
 pub fn init(event_loop: &EventLoop<()>, window: Arc<Window>) -> Result<(), VulkanApiError> {
     // init vulkan and window
     let (vk_instance, vk_surface) = init_vulkan_and_window(event_loop, window.clone())?;
@@ -276,7 +314,7 @@ pub fn init(event_loop: &EventLoop<()>, window: Arc<Window>) -> Result<(), Vulka
     let render_pass = create_render_pass(device.clone(), vk_swapchain.clone())?;
 
     // create image view
-    let framebuffers = get_framebuffers(&images, render_pass.clone());
+    let framebuffers = get_framebuffers(&images, render_pass.clone())?;
 
     // load shaders
     let vs = load_shaders::load_vertex(device.clone())?;
@@ -299,6 +337,13 @@ pub fn init(event_loop: &EventLoop<()>, window: Arc<Window>) -> Result<(), Vulka
     )?;
 
     // create command buffers
+    let command_buffers = create_command_buffers(
+        device.clone(), 
+        queue.clone(), 
+        pipeline.clone(), 
+        &framebuffers,
+        &vertex_buffer
+    );
 
     // setup fences vector so CPU doesn't have to wait for GPU
 
