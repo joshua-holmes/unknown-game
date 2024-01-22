@@ -1,4 +1,4 @@
-mod graphics;
+mod windowing;
 mod geometry;
 
 fn main() {
