@@ -2,5 +2,5 @@ mod windowing;
 mod geometry;
 
 fn main() {
-    println!("Hello, world!");
+    windowing::init_window().unwrap(); // handle errors
 }
