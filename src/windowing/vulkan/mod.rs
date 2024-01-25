@@ -6,7 +6,7 @@ use vulkano::{
     command_buffer::{
         allocator::{StandardCommandBufferAllocator, StandardCommandBufferAllocatorCreateInfo},
         AutoCommandBufferBuilder, CommandBufferUsage, PrimaryAutoCommandBuffer,
-        RenderPassBeginInfo, SubpassBeginInfo, SubpassEndInfo,
+        RenderPassBeginInfo, SubpassBeginInfo, SubpassEndInfo, CommandBufferExecFuture,
     },
     device::{
         physical::PhysicalDeviceType, Device, DeviceCreateInfo, DeviceExtensions, Queue,
@@ -31,21 +31,27 @@ use vulkano::{
     },
     render_pass::{Framebuffer, FramebufferCreateInfo, RenderPass, Subpass},
     shader::ShaderModule,
-    swapchain::{Surface, Swapchain, SwapchainCreateInfo},
-    Version, VulkanError, VulkanLibrary,
+    swapchain::{Surface, Swapchain, SwapchainCreateInfo, PresentFuture, SwapchainAcquireFuture, self, SwapchainPresentInfo},
+    Version, VulkanError, VulkanLibrary, sync::{future::{FenceSignalFuture, JoinFuture}, GpuFuture, self}, Validated,
 };
-use winit::{dpi::PhysicalSize, event_loop::EventLoop, window::Window};
+use winit::{event_loop::EventLoop, window::Window};
 
 use crate::geometry;
 
 mod load_shaders;
 
+pub type Fence = FenceSignalFuture<
+    PresentFuture<CommandBufferExecFuture<JoinFuture<Box<dyn GpuFuture>, SwapchainAcquireFuture>>>,
+>;
+
 type VulkanApiError = Box<dyn Error>;
 
-pub struct VulkanPipeline {
+pub struct VulkanGraphicsPipeline {
+    pub swapchain: Arc<Swapchain>,
+    pub fences: Vec<Option<Arc<Fence>>>,
     device: Arc<Device>,
     queue: Arc<Queue>,
-    swapchain: Arc<Swapchain>,
+    window: Arc<Window>,
     viewport: Viewport,
     render_pass: Arc<RenderPass>,
     command_buffers: Vec<Arc<PrimaryAutoCommandBuffer>>,
@@ -53,7 +59,7 @@ pub struct VulkanPipeline {
     vertex_buffer: Subbuffer<[geometry::Vertex]>,
     fragment_shader: Arc<ShaderModule>,
 }
-impl VulkanPipeline {
+impl VulkanGraphicsPipeline {
     fn init_vulkan_and_window(
         event_loop: &EventLoop<()>,
         window: Arc<Window>,
@@ -314,10 +320,9 @@ impl VulkanPipeline {
 
     pub fn recreate_swapchain(
         &mut self,
-        new_dimentions: PhysicalSize<u32>,
     ) -> Result<Vec<Arc<Image>>, VulkanApiError> {
         let (new_swapchain, new_images) = self.swapchain.recreate(SwapchainCreateInfo {
-            image_extent: new_dimentions.into(),
+            image_extent: self.window.inner_size().into(),
             ..self.swapchain.create_info()
         })?;
         self.swapchain = new_swapchain;
@@ -326,12 +331,11 @@ impl VulkanPipeline {
 
     pub fn recreate_swapchain_and_resize_window(
         &mut self,
-        new_dimentions: PhysicalSize<u32>,
     ) -> Result<(), VulkanApiError> {
-        let new_images = Self::recreate_swapchain(self, new_dimentions)?;
+        let new_images = self.recreate_swapchain()?;
         let new_framebuffers = Self::create_framebuffers(&new_images, self.render_pass.clone())?;
 
-        self.viewport.extent = new_dimentions.into();
+        self.viewport.extent = self.window.inner_size().into();
 
         let new_pipeline = Self::create_graphics_pipeline(
             self.device.clone(),
@@ -352,6 +356,67 @@ impl VulkanPipeline {
         Ok(())
     }
 
+    pub fn display_next_frame(&mut self) -> Result<(), VulkanApiError> {
+        // aquire current image index and time that the image finishes being created
+        let (image_i, suboptimal, acquire_image_future) =
+            match swapchain::acquire_next_image(self.swapchain.clone(), None) {
+                Ok(r) => r,
+                Err(e) => panic!("failed to acquire next image: {}", e), // TODO: setup with proper error handling
+            };
+        let previous_image_i = if image_i == 0 {
+            self.command_buffers.len() as u32 - 1
+        } else {
+            image_i - 1
+        };
+
+        // suboptimal if properties of swapchain and image differ, image will still display
+        if suboptimal {
+            self.recreate_swapchain()?;
+            println!("WARNING: swapchain function is suboptimal");
+        }
+
+        // wait for image in current position to finish displaying
+        if let Some(image_fence) = self.fences[image_i as usize].clone() {
+            image_fence.wait(None).unwrap();
+        }
+
+        // get time that previous image finishes displaying (or now if there is no previous image)
+        let previous_display_future = match self.fences[previous_image_i as usize].clone() {
+            None => {
+                let mut now = sync::now(self.device.clone());
+                now.cleanup_finished();
+                now.boxed()
+            }
+            Some(fence) => fence.boxed(),
+        };
+
+        // execute displaying image
+        // also get time that this image finishes displaying merged with time that previous image finished displaying
+        let current_display_future = previous_display_future
+            .join(acquire_image_future)
+            .then_execute(self.queue.clone(), self.command_buffers[image_i as usize].clone())
+            .expect("failed to execute command buffer")
+            .then_swapchain_present(
+                self.queue.clone(),
+                SwapchainPresentInfo::swapchain_image_index(self.swapchain.clone(), image_i),
+            )
+            .then_signal_fence_and_flush();
+
+        self.fences[image_i as usize] = match current_display_future.map_err(Validated::unwrap) {
+            Ok(value) => Some(Arc::new(value)),
+            Err(VulkanError::OutOfDate) => {
+                self.recreate_swapchain()?;
+                None
+            }
+            Err(e) => {
+                println!("failed to flush future from img '{}': {}", image_i, e);
+                None
+            }
+        };
+
+        Ok(())
+    }
+
     pub fn new(event_loop: &EventLoop<()>, window: Arc<Window>) -> Result<Self, VulkanApiError> {
         // init vulkan and window
         let (vk_instance, vk_surface) = Self::init_vulkan_and_window(event_loop, window.clone())?;
@@ -363,11 +428,11 @@ impl VulkanPipeline {
         let memory_allocator = Arc::new(StandardMemoryAllocator::new_default(device.clone()));
 
         // create swapchain
-        let (mut swapchain, images) =
+        let (swapchain, images) =
             Self::create_swapchain(device.clone(), vk_surface.clone(), window.clone())?;
 
         // setup basic triangle
-        let mut my_triangle = geometry::Triangle::new([0.5, 0.5], [-0.3, 0.], [0., -0.7]);
+        let my_triangle = geometry::Triangle::new([0.5, 0.5], [-0.3, 0.], [0., -0.7]);
 
         // setup vertex buffer
         let vertex_buffer = Self::create_vertex_buffer(memory_allocator.clone(), my_triangle)?;
@@ -383,7 +448,7 @@ impl VulkanPipeline {
         let fragment_shader = load_shaders::load_fragment(device.clone())?;
 
         // setup viewport
-        let mut viewport = Viewport {
+        let viewport = Viewport {
             offset: [0.0, 0.0],
             extent: [1024.0, 1024.0],
             depth_range: 0.0..=1.0,
@@ -408,11 +473,14 @@ impl VulkanPipeline {
         )?;
 
         // setup fences vector so CPU doesn't have to wait for GPU
+        let fences: Vec<Option<Arc<FenceSignalFuture<_>>>> = vec![None; images.len()];
 
         Ok(Self {
             device,
+            fences,
             queue,
             swapchain,
+            window,
             viewport,
             render_pass,
             command_buffers,
