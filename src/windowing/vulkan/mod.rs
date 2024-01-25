@@ -13,12 +13,12 @@ use vulkano::{
         QueueCreateInfo, QueueFlags,
     },
     format::ClearValue,
-    image::{view::ImageView, Image},
+    image::{view::ImageView, Image, ImageUsage},
     instance::{Instance, InstanceCreateInfo},
     memory::allocator::{AllocationCreateInfo, MemoryTypeFilter, StandardMemoryAllocator},
     pipeline::{
         graphics::{
-            color_blend::ColorBlendState,
+            color_blend::{ColorBlendState, ColorBlendAttachmentState},
             input_assembly::InputAssemblyState,
             multisample::MultisampleState,
             rasterization::RasterizationState,
@@ -157,6 +157,7 @@ impl VulkanGraphicsPipeline {
                 image_format,
                 image_color_space,
                 image_extent: window.inner_size().into(),
+                image_usage: ImageUsage::COLOR_ATTACHMENT,
                 composite_alpha: capabilities
                     .supported_composite_alpha
                     .into_iter()
@@ -266,7 +267,10 @@ impl VulkanGraphicsPipeline {
                 }),
                 rasterization_state: Some(RasterizationState::default()),
                 multisample_state: Some(MultisampleState::default()),
-                color_blend_state: Some(ColorBlendState::default()),
+                color_blend_state: Some(ColorBlendState::with_attachment_states(
+                    subpass.num_color_attachments(),
+                    ColorBlendAttachmentState::default(),
+                )),
                 subpass: Some(subpass.into()),
                 ..GraphicsPipelineCreateInfo::layout(layout)
             },
