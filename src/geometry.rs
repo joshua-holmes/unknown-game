@@ -7,7 +7,8 @@ pub struct Vertex {
     pub position: [f32; 2],
 }
 
-pub struct Triangle(pub Vertex, pub Vertex, pub Vertex);
+pub struct Triangle(Vertex, Vertex, Vertex);
+#[allow(dead_code)]
 impl Triangle {
     pub fn new(point_1: [f32; 2], point_2: [f32; 2], point_3: [f32; 2]) -> Self {
         Self(
@@ -17,7 +18,30 @@ impl Triangle {
         )
     }
 
-    pub fn move_verticies_to_vec(self) -> Vec<Vertex> {
+    pub fn into_vec_of_verticies(self) -> Vec<Vertex> {
         vec![self.0, self.1, self.2]
     }
 }
+
+pub struct Model(Vec<Triangle>);
+#[allow(dead_code)]
+impl Model {
+    pub fn new(mut triangles: impl Iterator<Item = Triangle>) -> Self {
+        let mut model_triangles = Vec::new();
+        while let Some(t) = triangles.next() {
+            model_triangles.push(t);
+        }
+        Self(model_triangles)
+    }
+
+    pub fn into_vec_of_verticies(self) -> Vec<Vertex> {
+        let mut v = Vec::with_capacity(self.0.len() * 3);
+        for triangle in self.0 {
+            v.push(triangle.0);
+            v.push(triangle.1);
+            v.push(triangle.2);
+        }
+        v
+    }
+}
+

@@ -166,7 +166,7 @@ impl VulkanGraphicsPipeline {
 
     fn create_vertex_buffer(
         memory_allocator: Arc<StandardMemoryAllocator>,
-        triangle: geometry::Triangle,
+        model: geometry::Model,
     ) -> Subbuffer<[geometry::Vertex]> {
         Buffer::from_iter(
             memory_allocator,
@@ -179,7 +179,7 @@ impl VulkanGraphicsPipeline {
                     | MemoryTypeFilter::HOST_SEQUENTIAL_WRITE,
                 ..Default::default()
             },
-            triangle.move_verticies_to_vec(),
+            model.into_vec_of_verticies(),
         ).unwrap()
     }
 
@@ -428,10 +428,13 @@ impl VulkanGraphicsPipeline {
             Self::create_swapchain(device.clone(), vk_surface.clone(), window.clone());
 
         // setup basic triangle
-        let my_triangle = geometry::Triangle::new([0.5, 0.5], [-0.3, 0.], [0., -0.7]);
+        let my_model = geometry::Model::new([
+            geometry::Triangle::new([-0.5, -0.5], [0.5, -0.5], [-0.5, 0.5]),
+            geometry::Triangle::new([0.5, -0.5], [-0.5, 0.5], [0.5, 0.5]),
+        ].into_iter());
 
         // setup vertex buffer
-        let vertex_buffer = Self::create_vertex_buffer(memory_allocator.clone(), my_triangle);
+        let vertex_buffer = Self::create_vertex_buffer(memory_allocator.clone(), my_model);
 
         // setup render pass
         let render_pass = Self::create_render_pass(device.clone(), swapchain.clone());
