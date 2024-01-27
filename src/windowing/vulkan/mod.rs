@@ -1,4 +1,4 @@
-use std::{error::Error, sync::Arc};
+use std::sync::Arc;
 
 use vulkano::{
     buffer::subbuffer::Subbuffer,
@@ -41,8 +41,6 @@ mod load_shaders;
 pub type Fence = FenceSignalFuture<
     PresentFuture<CommandBufferExecFuture<JoinFuture<Box<dyn GpuFuture>, SwapchainAcquireFuture>>>,
 >;
-
-type VulkanApiError = Box<dyn Error>;
 
 pub struct VulkanGraphicsPipeline {
     pub swapchain: Arc<Swapchain>,
