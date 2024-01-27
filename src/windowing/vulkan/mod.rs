@@ -22,9 +22,8 @@ use vulkano::{
             input_assembly::InputAssemblyState,
             multisample::MultisampleState,
             rasterization::RasterizationState,
-            vertex_input::{Vertex, VertexDefinition},
             viewport::{Viewport, ViewportState},
-            GraphicsPipelineCreateInfo,
+            GraphicsPipelineCreateInfo, vertex_input::{Vertex, VertexDefinition},
         },
         layout::PipelineDescriptorSetLayoutCreateInfo,
         GraphicsPipeline, PipelineLayout, PipelineShaderStageCreateInfo,
@@ -32,10 +31,9 @@ use vulkano::{
     render_pass::{Framebuffer, FramebufferCreateInfo, RenderPass, Subpass},
     shader::ShaderModule,
     swapchain::{Surface, Swapchain, SwapchainCreateInfo, PresentFuture, SwapchainAcquireFuture, self, SwapchainPresentInfo},
-    Version, VulkanError, VulkanLibrary, sync::{future::{FenceSignalFuture, JoinFuture}, GpuFuture, self}, Validated,
+    Version, VulkanError, VulkanLibrary, sync::{future::{FenceSignalFuture, JoinFuture}, GpuFuture, self}, Validated
 };
 use winit::{event_loop::EventLoop, window::Window};
-
 use crate::geometry;
 
 mod load_shaders;
@@ -63,8 +61,8 @@ impl VulkanGraphicsPipeline {
     fn init_vulkan_and_window(
         event_loop: &EventLoop<()>,
         window: Arc<Window>,
-    ) -> Result<(Arc<Instance>, Arc<Surface>), VulkanApiError> {
-        let library = VulkanLibrary::new()?;
+    ) -> (Arc<Instance>, Arc<Surface>) {
+        let library = VulkanLibrary::new().expect("Cannot find Vulkan. Vulkan is likely not installed"); // TODO: better error hanlding
         let required_extensions = Surface::required_extensions(event_loop);
         let vk_instance = Instance::new(
             library,
@@ -74,23 +72,23 @@ impl VulkanGraphicsPipeline {
                 enabled_extensions: required_extensions,
                 ..Default::default()
             },
-        )?;
-        let vk_surface = Surface::from_window(vk_instance.clone(), window)?;
+        ).unwrap();
+        let vk_surface = Surface::from_window(vk_instance.clone(), window).unwrap();
 
-        Ok((vk_instance, vk_surface))
+        (vk_instance, vk_surface)
     }
 
     fn get_graphics_device(
         vk_instance: Arc<Instance>,
         vk_surface: Arc<Surface>,
-    ) -> Result<(Arc<Device>, Arc<Queue>), VulkanApiError> {
+    ) -> (Arc<Device>, Arc<Queue>) {
         let device_extensions = DeviceExtensions {
             khr_swapchain: true,
             ..Default::default()
         };
 
         let (device, mut queues) = vk_instance
-            .enumerate_physical_devices()?
+            .enumerate_physical_devices().unwrap()
             .filter(|pysical_device| {
                 pysical_device
                     .supported_extensions()
@@ -133,23 +131,23 @@ impl VulkanGraphicsPipeline {
                         ..Default::default()
                     },
                 )
-            })??;
+            }).unwrap().unwrap();
 
-        Ok((device, queues.next().unwrap()))
+        (device, queues.next().unwrap())
     }
 
     fn create_swapchain(
         device: Arc<Device>,
         vk_surface: Arc<Surface>,
         window: Arc<Window>,
-    ) -> Result<(Arc<Swapchain>, Vec<Arc<Image>>), VulkanApiError> {
+    ) -> (Arc<Swapchain>, Vec<Arc<Image>>) {
         let capabilities = device
             .physical_device()
-            .surface_capabilities(&vk_surface, Default::default())?;
+            .surface_capabilities(&vk_surface, Default::default()).unwrap();
         let (image_format, image_color_space) = device
             .physical_device()
-            .surface_formats(&vk_surface, Default::default())?[0];
-        Ok(Swapchain::new(
+            .surface_formats(&vk_surface, Default::default()).unwrap()[0];
+        Swapchain::new(
             device.clone(),
             vk_surface.clone(),
             SwapchainCreateInfo {
@@ -165,14 +163,14 @@ impl VulkanGraphicsPipeline {
                     .unwrap(), // TODO: setup error handling
                 ..Default::default()
             },
-        )?)
+        ).unwrap()
     }
 
     fn create_vertex_buffer(
         memory_allocator: Arc<StandardMemoryAllocator>,
         triangle: geometry::Triangle,
-    ) -> Result<Subbuffer<[geometry::Vertex]>, VulkanApiError> {
-        Ok(Buffer::from_iter(
+    ) -> Subbuffer<[geometry::Vertex]> {
+        Buffer::from_iter(
             memory_allocator,
             BufferCreateInfo {
                 usage: BufferUsage::VERTEX_BUFFER,
@@ -184,14 +182,14 @@ impl VulkanGraphicsPipeline {
                 ..Default::default()
             },
             triangle.move_verticies_to_vec(),
-        )?)
+        ).unwrap()
     }
 
     fn create_render_pass(
         device: Arc<Device>,
         swapchain: Arc<Swapchain>,
-    ) -> Result<Arc<RenderPass>, VulkanApiError> {
-        Ok(vulkano::single_pass_renderpass!(
+    ) -> Arc<RenderPass> {
+        vulkano::single_pass_renderpass!(
             device,
             attachments: {
                 clear_color: {
@@ -205,14 +203,14 @@ impl VulkanGraphicsPipeline {
                 color: [clear_color],
                 depth_stencil: {}
             },
-        )?)
+        ).unwrap()
     }
 
     fn create_framebuffers(
         images: &Vec<Arc<Image>>,
         render_pass: Arc<RenderPass>,
-    ) -> Result<Vec<Arc<Framebuffer>>, VulkanApiError> {
-        Ok(images
+    ) -> Vec<Arc<Framebuffer>> {
+        images
             .iter()
             .map(|i| {
                 let view = ImageView::new_default(i.clone()).unwrap(); // TODO: setup with error handling
@@ -225,7 +223,7 @@ impl VulkanGraphicsPipeline {
                 )
                 .unwrap() // TODO: setup with error handling
             })
-            .collect())
+            .collect()
     }
 
     fn create_graphics_pipeline(
@@ -234,12 +232,12 @@ impl VulkanGraphicsPipeline {
         fragment_shader: Arc<ShaderModule>,
         render_pass: Arc<RenderPass>,
         viewport: Viewport,
-    ) -> Result<Arc<GraphicsPipeline>, VulkanApiError> {
+    ) -> Arc<GraphicsPipeline> {
         let vs_entry_point = vertex_shader.entry_point("main").unwrap();
         let fs_entry_point = fragment_shader.entry_point("main").unwrap();
 
         let vertex_input_state =
-            geometry::Vertex::per_vertex().definition(&vs_entry_point.info().input_interface)?;
+            geometry::Vertex::per_vertex().definition(&vs_entry_point.info().input_interface).unwrap();
 
         let stages = [
             PipelineShaderStageCreateInfo::new(vs_entry_point),
@@ -249,12 +247,12 @@ impl VulkanGraphicsPipeline {
         let layout = PipelineLayout::new(
             device.clone(),
             PipelineDescriptorSetLayoutCreateInfo::from_stages(&stages)
-                .into_pipeline_layout_create_info(device.clone())?,
-        )?;
+                .into_pipeline_layout_create_info(device.clone()).unwrap(),
+        ).unwrap();
 
         let subpass = Subpass::from(render_pass, 0).unwrap(); // TODO: setup with error handling
 
-        Ok(GraphicsPipeline::new(
+        GraphicsPipeline::new(
             device,
             None,
             GraphicsPipelineCreateInfo {
@@ -274,7 +272,7 @@ impl VulkanGraphicsPipeline {
                 subpass: Some(subpass.into()),
                 ..GraphicsPipelineCreateInfo::layout(layout)
             },
-        )?)
+        ).unwrap()
     }
 
     fn create_command_buffers(
@@ -283,13 +281,13 @@ impl VulkanGraphicsPipeline {
         pipeline: Arc<GraphicsPipeline>,
         framebuffers: &Vec<Arc<Framebuffer>>,
         vertex_buffer: &Subbuffer<[geometry::Vertex]>,
-    ) -> Result<Vec<Arc<PrimaryAutoCommandBuffer>>, VulkanApiError> {
+    ) -> Vec<Arc<PrimaryAutoCommandBuffer>> {
         let command_buffer_allocator = StandardCommandBufferAllocator::new(
             device,
             StandardCommandBufferAllocatorCreateInfo::default(),
         );
 
-        Ok(framebuffers
+        framebuffers
             .iter()
             .map(|framebuffer| {
                 let mut builder = AutoCommandBufferBuilder::primary(
@@ -319,25 +317,25 @@ impl VulkanGraphicsPipeline {
 
                 builder.build().unwrap()
             })
-            .collect())
+            .collect()
     }
 
     pub fn recreate_swapchain(
         &mut self,
-    ) -> Result<Vec<Arc<Image>>, VulkanApiError> {
+    ) -> Vec<Arc<Image>> {
         let (new_swapchain, new_images) = self.swapchain.recreate(SwapchainCreateInfo {
             image_extent: self.window.inner_size().into(),
             ..self.swapchain.create_info()
-        })?;
+        }).unwrap();
         self.swapchain = new_swapchain;
-        Ok(new_images)
+        new_images
     }
 
     pub fn recreate_swapchain_and_resize_window(
         &mut self,
-    ) -> Result<(), VulkanApiError> {
-        let new_images = self.recreate_swapchain()?;
-        let new_framebuffers = Self::create_framebuffers(&new_images, self.render_pass.clone())?;
+    ) {
+        let new_images = self.recreate_swapchain();
+        let new_framebuffers = Self::create_framebuffers(&new_images, self.render_pass.clone());
 
         self.viewport.extent = self.window.inner_size().into();
 
@@ -347,7 +345,7 @@ impl VulkanGraphicsPipeline {
             self.fragment_shader.clone(),
             self.render_pass.clone(),
             self.viewport.clone(),
-        )?;
+        );
 
         self.command_buffers = Self::create_command_buffers(
             self.device.clone(),
@@ -355,12 +353,10 @@ impl VulkanGraphicsPipeline {
             new_pipeline,
             &new_framebuffers,
             &self.vertex_buffer,
-        )?;
-
-        Ok(())
+        );
     }
 
-    pub fn display_next_frame(&mut self) -> Result<(), VulkanApiError> {
+    pub fn display_next_frame(&mut self) {
         // aquire current image index and time that the image finishes being created
         let (image_i, suboptimal, acquire_image_future) =
             match swapchain::acquire_next_image(self.swapchain.clone(), None) {
@@ -375,7 +371,7 @@ impl VulkanGraphicsPipeline {
 
         // suboptimal if properties of swapchain and image differ, image will still display
         if suboptimal {
-            self.recreate_swapchain()?;
+            self.recreate_swapchain();
             println!("WARNING: swapchain function is suboptimal");
         }
 
@@ -409,7 +405,7 @@ impl VulkanGraphicsPipeline {
         self.fences[image_i as usize] = match current_display_future.map_err(Validated::unwrap) {
             Ok(value) => Some(Arc::new(value)),
             Err(VulkanError::OutOfDate) => {
-                self.recreate_swapchain()?;
+                self.recreate_swapchain();
                 None
             }
             Err(e) => {
@@ -417,39 +413,37 @@ impl VulkanGraphicsPipeline {
                 None
             }
         };
-
-        Ok(())
     }
 
-    pub fn new(event_loop: &EventLoop<()>, window: Arc<Window>) -> Result<Self, VulkanApiError> {
+    pub fn new(event_loop: &EventLoop<()>, window: Arc<Window>) -> Self {
         // init vulkan and window
-        let (vk_instance, vk_surface) = Self::init_vulkan_and_window(event_loop, window.clone())?;
+        let (vk_instance, vk_surface) = Self::init_vulkan_and_window(event_loop, window.clone());
 
         // get graphics device
-        let (device, queue) = Self::get_graphics_device(vk_instance.clone(), vk_surface.clone())?;
+        let (device, queue) = Self::get_graphics_device(vk_instance.clone(), vk_surface.clone());
 
         // create memory allocator
         let memory_allocator = Arc::new(StandardMemoryAllocator::new_default(device.clone()));
 
         // create swapchain
         let (swapchain, images) =
-            Self::create_swapchain(device.clone(), vk_surface.clone(), window.clone())?;
+            Self::create_swapchain(device.clone(), vk_surface.clone(), window.clone());
 
         // setup basic triangle
         let my_triangle = geometry::Triangle::new([0.5, 0.5], [-0.3, 0.], [0., -0.7]);
 
         // setup vertex buffer
-        let vertex_buffer = Self::create_vertex_buffer(memory_allocator.clone(), my_triangle)?;
+        let vertex_buffer = Self::create_vertex_buffer(memory_allocator.clone(), my_triangle);
 
         // setup render pass
-        let render_pass = Self::create_render_pass(device.clone(), swapchain.clone())?;
+        let render_pass = Self::create_render_pass(device.clone(), swapchain.clone());
 
         // create image view
-        let framebuffers = Self::create_framebuffers(&images, render_pass.clone())?;
+        let framebuffers = Self::create_framebuffers(&images, render_pass.clone());
 
         // load shaders
-        let vertex_shader = load_shaders::load_vertex(device.clone())?;
-        let fragment_shader = load_shaders::load_fragment(device.clone())?;
+        let vertex_shader = load_shaders::load_vertex(device.clone()).unwrap();
+        let fragment_shader = load_shaders::load_fragment(device.clone()).unwrap();
 
         // setup viewport
         let viewport = Viewport {
@@ -465,7 +459,7 @@ impl VulkanGraphicsPipeline {
             fragment_shader.clone(),
             render_pass.clone(),
             viewport.clone(),
-        )?;
+        );
 
         // create command buffers
         let command_buffers = Self::create_command_buffers(
@@ -474,12 +468,12 @@ impl VulkanGraphicsPipeline {
             pipeline.clone(),
             &framebuffers,
             &vertex_buffer,
-        )?;
+        );
 
         // setup fences vector so CPU doesn't have to wait for GPU
         let fences: Vec<Option<Arc<FenceSignalFuture<_>>>> = vec![None; images.len()];
 
-        Ok(Self {
+        Self {
             device,
             fences,
             queue,
@@ -491,6 +485,6 @@ impl VulkanGraphicsPipeline {
             vertex_shader,
             vertex_buffer,
             fragment_shader,
-        })
+        }
     }
 }

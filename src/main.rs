@@ -2,5 +2,5 @@ mod windowing;
 mod geometry;
 
 fn main() {
-    windowing::init_window().unwrap(); // handle errors
+    windowing::init_window();
 }
