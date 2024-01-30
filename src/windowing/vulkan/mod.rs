@@ -1,13 +1,12 @@
 use std::sync::Arc;
 
-use crate::geometry::{self, Model};
+use crate::geometry::{self};
 use vulkano::{
     buffer::subbuffer::Subbuffer,
     buffer::{Buffer, BufferCreateInfo, BufferUsage},
     command_buffer::{
         allocator::{StandardCommandBufferAllocator, StandardCommandBufferAllocatorCreateInfo},
-        AutoCommandBufferBuilder, CommandBufferExecFuture, CommandBufferUsage,
-        CopyBufferToImageInfo, PrimaryAutoCommandBuffer, RenderPassBeginInfo, SubpassBeginInfo,
+        AutoCommandBufferBuilder, CommandBufferExecFuture, CommandBufferUsage, PrimaryAutoCommandBuffer, RenderPassBeginInfo, SubpassBeginInfo,
         SubpassEndInfo,
     },
     device::{
@@ -15,7 +14,7 @@ use vulkano::{
         QueueCreateInfo, QueueFlags,
     },
     format::{ClearValue, Format},
-    image::{view::ImageView, Image, ImageCreateInfo, ImageLayout, ImageType, ImageUsage},
+    image::{view::ImageView, Image, ImageCreateInfo, ImageType, ImageUsage},
     instance::{Instance, InstanceCreateInfo},
     memory::allocator::{
         AllocationCreateInfo, MemoryAllocatePreference, MemoryTypeFilter, StandardMemoryAllocator, GenericMemoryAllocator, FreeListAllocator,
@@ -346,8 +345,8 @@ impl VulkanGraphicsPipeline {
         device: Arc<Device>,
         queue: Arc<Queue>,
         pipeline: Arc<GraphicsPipeline>,
-        canvas_buffer: Subbuffer<[u8]>,
-        canvas_image: Arc<Image>,
+        _canvas_buffer: Subbuffer<[u8]>,
+        _canvas_image: Arc<Image>,
         framebuffers: &Vec<Arc<Framebuffer>>,
         vertex_buffer: &Subbuffer<[geometry::Vertex]>,
     ) -> Vec<Arc<PrimaryAutoCommandBuffer>> {

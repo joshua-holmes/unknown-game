@@ -1,6 +1,6 @@
 use winit::{event::{Event, WindowEvent}, event_loop::ControlFlow};
 
-use crate::{windowing::vulkan::VulkanGraphicsPipeline, geometry};
+use crate::{windowing::vulkan::VulkanGraphicsPipeline};
 
 pub fn handle_event(event: Event<()>, control_flow: &mut ControlFlow, pipeline: &mut VulkanGraphicsPipeline) {
     match event {
