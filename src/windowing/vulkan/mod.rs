@@ -1,40 +1,54 @@
 use std::sync::Arc;
 
+use crate::geometry::{self, Model};
 use vulkano::{
     buffer::subbuffer::Subbuffer,
     buffer::{Buffer, BufferCreateInfo, BufferUsage},
     command_buffer::{
         allocator::{StandardCommandBufferAllocator, StandardCommandBufferAllocatorCreateInfo},
-        AutoCommandBufferBuilder, CommandBufferUsage, PrimaryAutoCommandBuffer,
-        RenderPassBeginInfo, SubpassBeginInfo, SubpassEndInfo, CommandBufferExecFuture,
+        AutoCommandBufferBuilder, CommandBufferExecFuture, CommandBufferUsage,
+        CopyBufferToImageInfo, PrimaryAutoCommandBuffer, RenderPassBeginInfo, SubpassBeginInfo,
+        SubpassEndInfo,
     },
     device::{
         physical::PhysicalDeviceType, Device, DeviceCreateInfo, DeviceExtensions, Queue,
         QueueCreateInfo, QueueFlags,
     },
-    format::ClearValue,
-    image::{view::ImageView, Image, ImageUsage},
+    format::{ClearValue, Format},
+    image::{view::ImageView, Image, ImageCreateInfo, ImageLayout, ImageType, ImageUsage},
     instance::{Instance, InstanceCreateInfo},
-    memory::allocator::{AllocationCreateInfo, MemoryTypeFilter, StandardMemoryAllocator},
+    memory::allocator::{
+        AllocationCreateInfo, MemoryAllocatePreference, MemoryTypeFilter, StandardMemoryAllocator, GenericMemoryAllocator, FreeListAllocator,
+    },
     pipeline::{
         graphics::{
-            color_blend::{ColorBlendState, ColorBlendAttachmentState},
+            color_blend::{ColorBlendAttachmentState, ColorBlendState},
             input_assembly::InputAssemblyState,
             multisample::MultisampleState,
             rasterization::RasterizationState,
+            vertex_input::{Vertex, VertexDefinition},
             viewport::{Viewport, ViewportState},
-            GraphicsPipelineCreateInfo, vertex_input::{Vertex, VertexDefinition},
+            GraphicsPipelineCreateInfo,
         },
         layout::PipelineDescriptorSetLayoutCreateInfo,
         GraphicsPipeline, PipelineLayout, PipelineShaderStageCreateInfo,
     },
     render_pass::{Framebuffer, FramebufferCreateInfo, RenderPass, Subpass},
     shader::ShaderModule,
-    swapchain::{Surface, Swapchain, SwapchainCreateInfo, PresentFuture, SwapchainAcquireFuture, self, SwapchainPresentInfo},
-    Version, VulkanError, VulkanLibrary, sync::{future::{FenceSignalFuture, JoinFuture}, GpuFuture, self}, Validated
+    swapchain::{
+        self, PresentFuture, Surface, Swapchain, SwapchainAcquireFuture, SwapchainCreateInfo,
+        SwapchainPresentInfo,
+    },
+    sync::{
+        self,
+        future::{FenceSignalFuture, JoinFuture},
+        GpuFuture,
+    },
+    Validated, Version, VulkanError, VulkanLibrary,
 };
 use winit::{event_loop::EventLoop, window::Window};
-use crate::geometry;
+
+use super::canvas::{Resolution, Canvas};
 
 mod load_shaders;
 
@@ -45,6 +59,7 @@ pub type Fence = FenceSignalFuture<
 pub struct VulkanGraphicsPipeline {
     pub swapchain: Arc<Swapchain>,
     pub fences: Vec<Option<Arc<Fence>>>,
+    pub canvas: Canvas,
     device: Arc<Device>,
     queue: Arc<Queue>,
     window: Arc<Window>,
@@ -52,15 +67,17 @@ pub struct VulkanGraphicsPipeline {
     render_pass: Arc<RenderPass>,
     command_buffers: Vec<Arc<PrimaryAutoCommandBuffer>>,
     vertex_shader: Arc<ShaderModule>,
-    vertex_buffer: Subbuffer<[geometry::Vertex]>,
+    pub vertex_buffer: Subbuffer<[geometry::Vertex]>,
     fragment_shader: Arc<ShaderModule>,
+    memory_allocator: Arc<GenericMemoryAllocator<FreeListAllocator>>,
 }
 impl VulkanGraphicsPipeline {
     fn init_vulkan_and_window(
         event_loop: &EventLoop<()>,
         window: Arc<Window>,
     ) -> (Arc<Instance>, Arc<Surface>) {
-        let library = VulkanLibrary::new().expect("Cannot find Vulkan. Vulkan is likely not installed"); // TODO: better error hanlding
+        let library =
+            VulkanLibrary::new().expect("Cannot find Vulkan. Vulkan is likely not installed"); // TODO: better error hanlding
         let required_extensions = Surface::required_extensions(event_loop);
         let vk_instance = Instance::new(
             library,
@@ -70,7 +87,8 @@ impl VulkanGraphicsPipeline {
                 enabled_extensions: required_extensions,
                 ..Default::default()
             },
-        ).unwrap();
+        )
+        .unwrap();
         let vk_surface = Surface::from_window(vk_instance.clone(), window).unwrap();
 
         (vk_instance, vk_surface)
@@ -86,7 +104,8 @@ impl VulkanGraphicsPipeline {
         };
 
         let (device, mut queues) = vk_instance
-            .enumerate_physical_devices().unwrap()
+            .enumerate_physical_devices()
+            .unwrap()
             .filter(|pysical_device| {
                 pysical_device
                     .supported_extensions()
@@ -129,7 +148,9 @@ impl VulkanGraphicsPipeline {
                         ..Default::default()
                     },
                 )
-            }).unwrap().unwrap();
+            })
+            .unwrap()
+            .unwrap();
 
         (device, queues.next().unwrap())
     }
@@ -141,10 +162,12 @@ impl VulkanGraphicsPipeline {
     ) -> (Arc<Swapchain>, Vec<Arc<Image>>) {
         let capabilities = device
             .physical_device()
-            .surface_capabilities(&vk_surface, Default::default()).unwrap();
+            .surface_capabilities(&vk_surface, Default::default())
+            .unwrap();
         let (image_format, image_color_space) = device
             .physical_device()
-            .surface_formats(&vk_surface, Default::default()).unwrap()[0];
+            .surface_formats(&vk_surface, Default::default())
+            .unwrap()[0];
         Swapchain::new(
             device.clone(),
             vk_surface.clone(),
@@ -161,7 +184,8 @@ impl VulkanGraphicsPipeline {
                     .unwrap(), // TODO: setup error handling
                 ..Default::default()
             },
-        ).unwrap()
+        )
+        .unwrap()
     }
 
     fn create_vertex_buffer(
@@ -180,13 +204,11 @@ impl VulkanGraphicsPipeline {
                 ..Default::default()
             },
             model.into_vec_of_verticies(),
-        ).unwrap()
+        )
+        .unwrap()
     }
 
-    fn create_render_pass(
-        device: Arc<Device>,
-        swapchain: Arc<Swapchain>,
-    ) -> Arc<RenderPass> {
+    fn create_render_pass(device: Arc<Device>, swapchain: Arc<Swapchain>) -> Arc<RenderPass> {
         vulkano::single_pass_renderpass!(
             device,
             attachments: {
@@ -201,7 +223,8 @@ impl VulkanGraphicsPipeline {
                 color: [clear_color],
                 depth_stencil: {}
             },
-        ).unwrap()
+        )
+        .unwrap()
     }
 
     fn create_framebuffers(
@@ -234,8 +257,9 @@ impl VulkanGraphicsPipeline {
         let vs_entry_point = vertex_shader.entry_point("main").unwrap();
         let fs_entry_point = fragment_shader.entry_point("main").unwrap();
 
-        let vertex_input_state =
-            geometry::Vertex::per_vertex().definition(&vs_entry_point.info().input_interface).unwrap();
+        let vertex_input_state = geometry::Vertex::per_vertex()
+            .definition(&vs_entry_point.info().input_interface)
+            .unwrap();
 
         let stages = [
             PipelineShaderStageCreateInfo::new(vs_entry_point),
@@ -245,8 +269,10 @@ impl VulkanGraphicsPipeline {
         let layout = PipelineLayout::new(
             device.clone(),
             PipelineDescriptorSetLayoutCreateInfo::from_stages(&stages)
-                .into_pipeline_layout_create_info(device.clone()).unwrap(),
-        ).unwrap();
+                .into_pipeline_layout_create_info(device.clone())
+                .unwrap(),
+        )
+        .unwrap();
 
         let subpass = Subpass::from(render_pass, 0).unwrap(); // TODO: setup with error handling
 
@@ -265,18 +291,63 @@ impl VulkanGraphicsPipeline {
                 multisample_state: Some(MultisampleState::default()),
                 color_blend_state: Some(ColorBlendState::with_attachment_states(
                     subpass.num_color_attachments(),
-                    ColorBlendAttachmentState::default(),
-                )),
+                    ColorBlendAttachmentState::default(),)),
                 subpass: Some(subpass.into()),
                 ..GraphicsPipelineCreateInfo::layout(layout)
             },
-        ).unwrap()
+        )
+        .unwrap()
+    }
+
+    fn create_canvas_buffer(
+        memory_allocator: Arc<StandardMemoryAllocator>,
+        canvas: &Canvas,
+    ) -> Subbuffer<[u8]> {
+        Buffer::from_iter(
+            memory_allocator,
+            BufferCreateInfo {
+                usage: BufferUsage::TRANSFER_SRC,
+                ..Default::default()
+            },
+            AllocationCreateInfo {
+                memory_type_filter: MemoryTypeFilter::PREFER_DEVICE
+                    | MemoryTypeFilter::HOST_SEQUENTIAL_WRITE,
+                ..Default::default()
+            },
+            canvas.flattened_pixels(),
+        )
+        .unwrap()
+    }
+
+    fn create_canvas_image(
+        memory_allocator: Arc<StandardMemoryAllocator>,
+        resolution: Resolution,
+    ) -> Arc<Image> {
+        Image::new(
+            memory_allocator,
+            ImageCreateInfo {
+                image_type: ImageType::Dim2d,
+                format: Format::R8_UINT,
+                extent: [resolution.width, resolution.height, 1],
+                usage: ImageUsage::TRANSFER_DST | ImageUsage::COLOR_ATTACHMENT,
+                // initial_layout: ImageLayout::ColorAttachmentOptimal,
+                ..Default::default()
+            },
+            AllocationCreateInfo {
+                memory_type_filter: MemoryTypeFilter::PREFER_DEVICE,
+                allocate_preference: MemoryAllocatePreference::AlwaysAllocate,
+                ..Default::default()
+            },
+        )
+        .unwrap()
     }
 
     fn create_command_buffers(
         device: Arc<Device>,
         queue: Arc<Queue>,
         pipeline: Arc<GraphicsPipeline>,
+        canvas_buffer: Subbuffer<[u8]>,
+        canvas_image: Arc<Image>,
         framebuffers: &Vec<Arc<Framebuffer>>,
         vertex_buffer: &Subbuffer<[geometry::Vertex]>,
     ) -> Vec<Arc<PrimaryAutoCommandBuffer>> {
@@ -298,7 +369,7 @@ impl VulkanGraphicsPipeline {
                 builder
                     .begin_render_pass(
                         RenderPassBeginInfo {
-                            clear_values: vec![Some(ClearValue::Float([0., 1., 0., 1.]))],
+                            clear_values: vec![Some(ClearValue::Float([0., 0., 0., 1.]))],
                             ..RenderPassBeginInfo::framebuffer(framebuffer.clone())
                         },
                         SubpassBeginInfo::default(),
@@ -308,6 +379,11 @@ impl VulkanGraphicsPipeline {
                     .unwrap()
                     .bind_vertex_buffers(0, vertex_buffer.clone())
                     .unwrap()
+                    // .copy_buffer_to_image(CopyBufferToImageInfo::buffer_image(
+                    //     canvas_buffer.clone(),
+                    //     canvas_image.clone(),
+                    // ))
+                    // .unwrap()
                     .draw(vertex_buffer.len() as u32, 1, 0, 0)
                     .unwrap()
                     .end_render_pass(SubpassEndInfo::default())
@@ -318,20 +394,19 @@ impl VulkanGraphicsPipeline {
             .collect()
     }
 
-    pub fn recreate_swapchain(
-        &mut self,
-    ) -> Vec<Arc<Image>> {
-        let (new_swapchain, new_images) = self.swapchain.recreate(SwapchainCreateInfo {
-            image_extent: self.window.inner_size().into(),
-            ..self.swapchain.create_info()
-        }).unwrap();
+    pub fn recreate_swapchain(&mut self) -> Vec<Arc<Image>> {
+        let (new_swapchain, new_images) = self
+            .swapchain
+            .recreate(SwapchainCreateInfo {
+                image_extent: self.window.inner_size().into(),
+                ..self.swapchain.create_info()
+            })
+            .unwrap();
         self.swapchain = new_swapchain;
         new_images
     }
 
-    pub fn recreate_swapchain_and_resize_window(
-        &mut self,
-    ) {
+    pub fn recreate_swapchain_and_resize_window(&mut self) {
         let new_images = self.recreate_swapchain();
         let new_framebuffers = Self::create_framebuffers(&new_images, self.render_pass.clone());
 
@@ -345,10 +420,16 @@ impl VulkanGraphicsPipeline {
             self.viewport.clone(),
         );
 
+        self.canvas = Canvas::new_mock_from_resolution(&self.window.inner_size().into());
+        let canvas_buffer = Self::create_canvas_buffer(self.memory_allocator.clone(), &self.canvas);
+        let canvas_image = Self::create_canvas_image(self.memory_allocator.clone(), self.window.inner_size().into());
+
         self.command_buffers = Self::create_command_buffers(
             self.device.clone(),
             self.queue.clone(),
             new_pipeline,
+            canvas_buffer,
+            canvas_image,
             &new_framebuffers,
             &self.vertex_buffer,
         );
@@ -392,7 +473,10 @@ impl VulkanGraphicsPipeline {
         // also get time that this image finishes displaying merged with time that previous image finished displaying
         let current_display_future = previous_display_future
             .join(acquire_image_future)
-            .then_execute(self.queue.clone(), self.command_buffers[image_i as usize].clone())
+            .then_execute(
+                self.queue.clone(),
+                self.command_buffers[image_i as usize].clone(),
+            )
             .expect("failed to execute command buffer")
             .then_swapchain_present(
                 self.queue.clone(),
@@ -428,12 +512,14 @@ impl VulkanGraphicsPipeline {
             Self::create_swapchain(device.clone(), vk_surface.clone(), window.clone());
 
         // setup basic triangle
-        let my_model = geometry::Model::new([
-            geometry::Triangle::new([-0.5, -0.5], [0.5, -0.5], [-0.5, 0.5]),
-            geometry::Triangle::new([0.5, -0.5], [-0.5, 0.5], [0.5, 0.5]),
-        ].into_iter());
+        let my_model = geometry::Model::new(
+            [
+                geometry::Triangle::new([-0.5, -0.5], [0.5, -0.5], [-0.5, 0.5]),
+                geometry::Triangle::new([0.5, -0.5], [-0.5, 0.5], [0.5, 0.5]),
+            ]
+            .into_iter(),
+        );
 
-        // setup vertex buffer
         let vertex_buffer = Self::create_vertex_buffer(memory_allocator.clone(), my_model);
 
         // setup render pass
@@ -462,11 +548,24 @@ impl VulkanGraphicsPipeline {
             viewport.clone(),
         );
 
+        let resolution = Resolution {
+            height: 1024,
+            width: 1024
+        };
+
+        let canvas = Canvas::new_mock_from_resolution(&resolution);
+
+        let canvas_buffer = Self::create_canvas_buffer(memory_allocator.clone(), &canvas);
+
+        let canvas_image = Self::create_canvas_image(memory_allocator.clone(), resolution);
+
         // create command buffers
         let command_buffers = Self::create_command_buffers(
             device.clone(),
             queue.clone(),
             pipeline.clone(),
+            canvas_buffer,
+            canvas_image,
             &framebuffers,
             &vertex_buffer,
         );
@@ -477,6 +576,7 @@ impl VulkanGraphicsPipeline {
         Self {
             device,
             fences,
+            canvas,
             queue,
             swapchain,
             window,
@@ -486,6 +586,7 @@ impl VulkanGraphicsPipeline {
             vertex_shader,
             vertex_buffer,
             fragment_shader,
+            memory_allocator,
         }
     }
 }
