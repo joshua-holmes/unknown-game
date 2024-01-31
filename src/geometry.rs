@@ -37,11 +37,17 @@ impl Model {
     pub fn into_vec_of_verticies(self) -> Vec<Vertex> {
         let mut v = Vec::with_capacity(self.0.len() * 3);
         for triangle in self.0 {
-            v.push(triangle.0);
-            v.push(triangle.1);
-            v.push(triangle.2);
+            for vertex in triangle.into_vec_of_verticies() {
+                v.push(vertex);
+            }
         }
         v
+    }
+
+    pub fn count_verticies(&self) -> u32 {
+        // TODO: count number of verticies in triangle dynamically instead of hard coded. probably will involve a macro
+        let verticies_per_triangle = 3;
+        self.0.len() as u32 * verticies_per_triangle
     }
 }
 
