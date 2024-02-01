@@ -65,7 +65,7 @@ pub struct VulkanGraphicsPipeline {
     vertex_shader: Arc<ShaderModule>,
     pub vertex_buffer: Subbuffer<[geometry::Vertex]>,
     canvas: Canvas,
-    canvas_buffer: Subbuffer<[geometry::Dot]>,
+    canvas_buffers: Vec<Subbuffer<[geometry::Dot]>>,
     fragment_shader: Arc<ShaderModule>,
     memory_allocator: Arc<GenericMemoryAllocator<FreeListAllocator>>,
 }
@@ -341,7 +341,7 @@ impl VulkanGraphicsPipeline {
         pipeline: Arc<GraphicsPipeline>,
         framebuffers: &Vec<Arc<Framebuffer>>,
         vertex_buffer: &Subbuffer<[geometry::Vertex]>,
-        canvas_buffer: &Subbuffer<[geometry::Dot]>,
+        canvas_buffers: &Vec<Subbuffer<[geometry::Dot]>>,
         canvas_image: Arc<Image>,
     ) -> Vec<Arc<PrimaryAutoCommandBuffer>> {
         let command_buffer_allocator = StandardCommandBufferAllocator::new(
@@ -351,7 +351,8 @@ impl VulkanGraphicsPipeline {
 
         framebuffers
             .iter()
-            .map(|framebuffer| {
+            .zip(canvas_buffers)
+            .map(|(framebuffer, canvas_buffer)| {
                 let mut builder = AutoCommandBufferBuilder::primary(
                     &command_buffer_allocator,
                     queue.queue_family_index(),
@@ -360,6 +361,11 @@ impl VulkanGraphicsPipeline {
                 .unwrap(); // TODO: setup proper error handling
 
                 builder
+                    .copy_buffer_to_image(CopyBufferToImageInfo::buffer_image(
+                        canvas_buffer.clone(),
+                        canvas_image.clone()
+                    ))
+                    .unwrap()
                     .begin_render_pass(
                         RenderPassBeginInfo {
                             clear_values: vec![Some(ClearValue::Float([0., 0., 0., 1.]))],
@@ -372,11 +378,6 @@ impl VulkanGraphicsPipeline {
                     .unwrap()
                     .bind_vertex_buffers(0, vertex_buffer.clone())
                     .unwrap()
-                    .copy_buffer_to_image(CopyBufferToImageInfo::buffer_image(
-                        canvas_buffer.clone(),
-                        canvas_image.clone()
-                    ))
-                    .unwrap()
                     .draw(vertex_buffer.len() as u32, 1, 0, 0)
                     .unwrap()
                     .end_render_pass(SubpassEndInfo::default())
@@ -385,6 +386,15 @@ impl VulkanGraphicsPipeline {
                 builder.build().unwrap()
             })
             .collect()
+    }
+
+    fn flush_swapchain(&mut self) {
+        for fence in self.fences.iter_mut() {
+            if let Some(f) = fence {
+                f.wait(None).unwrap();
+            }
+            *fence = None;
+        }
     }
 
     pub fn recreate_swapchain(&mut self) -> Vec<Arc<Image>> {
@@ -420,13 +430,14 @@ impl VulkanGraphicsPipeline {
             &self.window.inner_size()
         );
 
+        self.flush_swapchain();
         self.command_buffers = Self::create_command_buffers(
             self.device.clone(),
             self.queue.clone(),
             new_pipeline,
             &new_framebuffers,
             &self.vertex_buffer,
-            &self.canvas_buffer,
+            &self.canvas_buffers,
             new_canvas_image
         );
     }
@@ -535,12 +546,15 @@ impl VulkanGraphicsPipeline {
 
         // canvas setup
         let canvas = Canvas::new(&resolution);
-        let canvas_buffer = Self::create_buffer(
-            memory_allocator.clone(), 
-            BufferUsage::TRANSFER_SRC, 
-            MemoryTypeFilter::PREFER_HOST | MemoryTypeFilter::HOST_SEQUENTIAL_WRITE, 
-            canvas.to_vec_of_dots()
-        );
+        let canvas_buffers = (0..images.len()).map(|_| {
+            Self::create_buffer(
+                memory_allocator.clone(), 
+                BufferUsage::TRANSFER_SRC, 
+                MemoryTypeFilter::PREFER_HOST | MemoryTypeFilter::HOST_SEQUENTIAL_WRITE, 
+                canvas.to_vec_of_dots()
+            )
+        })
+        .collect();
         let canvas_image = Self::create_2d_image(
             memory_allocator.clone(),
             ImageUsage::TRANSFER_DST | ImageUsage::STORAGE,
@@ -575,7 +589,7 @@ impl VulkanGraphicsPipeline {
             pipeline.clone(),
             &framebuffers,
             &vertex_buffer,
-            &canvas_buffer,
+            &canvas_buffers,
             canvas_image,
         );
 
@@ -594,7 +608,7 @@ impl VulkanGraphicsPipeline {
             vertex_shader,
             vertex_buffer,
             canvas,
-            canvas_buffer,
+            canvas_buffers,
             fragment_shader,
             memory_allocator,
         }
