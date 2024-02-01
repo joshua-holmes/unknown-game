@@ -1,6 +1,6 @@
 use winit::{event::{Event, WindowEvent}, event_loop::ControlFlow};
 
-use crate::{windowing::vulkan::VulkanGraphicsPipeline};
+use crate::windowing::vulkan::VulkanGraphicsPipeline;
 
 pub fn handle_event(event: Event<()>, control_flow: &mut ControlFlow, pipeline: &mut VulkanGraphicsPipeline) {
     match event {
@@ -18,16 +18,6 @@ pub fn handle_event(event: Event<()>, control_flow: &mut ControlFlow, pipeline: 
             pipeline.recreate_swapchain_and_resize_window();
         }
         Event::MainEventsCleared => {
-            // while let Err(e) = pipeline.vertex_buffer.write() {
-            //     println!("cannot get vertex buffer lock, {}", e);
-            // }
-            // pipeline
-            //     .vertex_buffer
-            //     .write()
-            //     .unwrap()
-            //     .last_mut()
-            //     .unwrap()
-            // .position[1] += 0.1;
             pipeline.display_next_frame();
         }
         _ => (),

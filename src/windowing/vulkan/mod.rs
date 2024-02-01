@@ -59,15 +59,14 @@ pub struct VulkanGraphicsPipeline {
     pub swapchain: Arc<Swapchain>,
     pub fences: Vec<Option<Arc<Fence>>>,
     pub canvas: Canvas,
-    device: Arc<Device>,
-    queue: Arc<Queue>,
+    pub queue: Arc<Queue>,
+    pub device: Arc<Device>,
     window: Arc<Window>,
     viewport: Viewport,
     render_pass: Arc<RenderPass>,
     command_buffers: Vec<Arc<PrimaryAutoCommandBuffer>>,
     vertex_shader: Arc<ShaderModule>,
-    vertex_staging_buffer: Subbuffer<[geometry::Vertex]>,
-    vertex_buffer: Subbuffer<[geometry::Vertex]>,
+    pub vertex_buffer: Subbuffer<[geometry::Vertex]>,
     fragment_shader: Arc<ShaderModule>,
     memory_allocator: Arc<GenericMemoryAllocator<FreeListAllocator>>,
 }
@@ -349,7 +348,6 @@ impl VulkanGraphicsPipeline {
         pipeline: Arc<GraphicsPipeline>,
         framebuffers: &Vec<Arc<Framebuffer>>,
         vertex_buffer: &Subbuffer<[geometry::Vertex]>,
-        vertex_staging_buffer: &Subbuffer<[geometry::Vertex]>,
     ) -> Vec<Arc<PrimaryAutoCommandBuffer>> {
         let command_buffer_allocator = StandardCommandBufferAllocator::new(
             device,
@@ -378,11 +376,6 @@ impl VulkanGraphicsPipeline {
                     .bind_pipeline_graphics(pipeline.clone())
                     .unwrap()
                     .bind_vertex_buffers(0, vertex_buffer.clone())
-                    .unwrap()
-                    .copy_buffer(CopyBufferInfo::buffers(
-                        vertex_staging_buffer.clone(),
-                        vertex_buffer.clone()
-                    ))
                     .unwrap()
                     .draw(vertex_buffer.len() as u32, 1, 0, 0)
                     .unwrap()
@@ -430,7 +423,6 @@ impl VulkanGraphicsPipeline {
             new_pipeline,
             &new_framebuffers,
             &self.vertex_buffer,
-            &self.vertex_staging_buffer,
         );
     }
 
@@ -520,21 +512,12 @@ impl VulkanGraphicsPipeline {
         );
 
         // setup vertex buffers
-        let junk_data = (0..my_model.count_verticies()).map(|_| {
-            geometry::Vertex { position: [0., 0.] }
-        }).collect();
-        let vertex_staging_buffer = Self::create_buffer(
-            memory_allocator.clone(),
-            BufferUsage::TRANSFER_SRC,
-            MemoryTypeFilter::PREFER_HOST | MemoryTypeFilter::HOST_SEQUENTIAL_WRITE,
-            my_model.into_vec_of_verticies()
-        );
         let vertex_buffer = Self::create_buffer(
             memory_allocator.clone(),
-            BufferUsage::VERTEX_BUFFER | BufferUsage::TRANSFER_DST,
-            MemoryTypeFilter::PREFER_DEVICE,
+            BufferUsage::VERTEX_BUFFER,
+            MemoryTypeFilter::PREFER_HOST | MemoryTypeFilter::HOST_SEQUENTIAL_WRITE,
             // junk data because this buffer gets overwritten by staging buffer
-            junk_data
+            my_model.into_vec_of_verticies()
         );
 
         // setup render pass
@@ -577,7 +560,6 @@ impl VulkanGraphicsPipeline {
             pipeline.clone(),
             &framebuffers,
             &vertex_buffer,
-            &vertex_staging_buffer,
         );
 
         // setup fences vector so CPU doesn't have to wait for GPU
@@ -595,7 +577,6 @@ impl VulkanGraphicsPipeline {
             command_buffers,
             vertex_shader,
             vertex_buffer,
-            vertex_staging_buffer,
             fragment_shader,
             memory_allocator,
         }
