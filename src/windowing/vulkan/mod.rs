@@ -58,7 +58,6 @@ pub type Fence = FenceSignalFuture<
 pub struct VulkanGraphicsPipeline {
     pub swapchain: Arc<Swapchain>,
     pub fences: Vec<Option<Arc<Fence>>>,
-    pub canvas: Canvas,
     pub queue: Arc<Queue>,
     pub device: Arc<Device>,
     window: Arc<Window>,
@@ -299,49 +298,6 @@ impl VulkanGraphicsPipeline {
         .unwrap()
     }
 
-    fn create_canvas_buffer(
-        memory_allocator: Arc<StandardMemoryAllocator>,
-        canvas: &Canvas,
-    ) -> Subbuffer<[u8]> {
-        Buffer::from_iter(
-            memory_allocator,
-            BufferCreateInfo {
-                usage: BufferUsage::TRANSFER_SRC,
-                ..Default::default()
-            },
-            AllocationCreateInfo {
-                memory_type_filter: MemoryTypeFilter::PREFER_DEVICE
-                    | MemoryTypeFilter::HOST_SEQUENTIAL_WRITE,
-                ..Default::default()
-            },
-            canvas.flattened_pixels(),
-        )
-        .unwrap()
-    }
-
-    fn create_canvas_image(
-        memory_allocator: Arc<StandardMemoryAllocator>,
-        resolution: Resolution,
-    ) -> Arc<Image> {
-        Image::new(
-            memory_allocator,
-            ImageCreateInfo {
-                image_type: ImageType::Dim2d,
-                format: Format::R8_UINT,
-                extent: [resolution.width, resolution.height, 1],
-                usage: ImageUsage::TRANSFER_DST | ImageUsage::COLOR_ATTACHMENT,
-                // initial_layout: ImageLayout::ColorAttachmentOptimal,
-                ..Default::default()
-            },
-            AllocationCreateInfo {
-                memory_type_filter: MemoryTypeFilter::PREFER_DEVICE,
-                allocate_preference: MemoryAllocatePreference::AlwaysAllocate,
-                ..Default::default()
-            },
-        )
-        .unwrap()
-    }
-
     fn create_command_buffers(
         device: Arc<Device>,
         queue: Arc<Queue>,
@@ -412,10 +368,6 @@ impl VulkanGraphicsPipeline {
             self.render_pass.clone(),
             self.viewport.clone(),
         );
-
-        self.canvas = Canvas::new_mock_from_resolution(&self.window.inner_size().into());
-        let canvas_buffer = Self::create_canvas_buffer(self.memory_allocator.clone(), &self.canvas);
-        let canvas_image = Self::create_canvas_image(self.memory_allocator.clone(), self.window.inner_size().into());
 
         self.command_buffers = Self::create_command_buffers(
             self.device.clone(),
@@ -546,13 +498,6 @@ impl VulkanGraphicsPipeline {
             viewport.clone(),
         );
 
-        let resolution = Resolution {
-            height: 1024,
-            width: 1024
-        };
-
-        let canvas = Canvas::new_mock_from_resolution(&resolution);
-
         // create command buffers
         let command_buffers = Self::create_command_buffers(
             device.clone(),
@@ -568,7 +513,6 @@ impl VulkanGraphicsPipeline {
         Self {
             device,
             fences,
-            canvas,
             queue,
             swapchain,
             window,
