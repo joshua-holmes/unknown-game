@@ -7,7 +7,7 @@ use vulkano::{
     command_buffer::{
         allocator::{StandardCommandBufferAllocator, StandardCommandBufferAllocatorCreateInfo},
         AutoCommandBufferBuilder, CommandBufferExecFuture, CommandBufferUsage, PrimaryAutoCommandBuffer, RenderPassBeginInfo, SubpassBeginInfo,
-        SubpassEndInfo, CopyBufferInfo,
+        SubpassEndInfo, CopyBufferInfo, CopyBufferToImageInfo,
     },
     device::{
         physical::PhysicalDeviceType, Device, DeviceCreateInfo, DeviceExtensions, Queue,
@@ -63,9 +63,10 @@ pub struct VulkanGraphicsPipeline {
     render_pass: Arc<RenderPass>,
     command_buffers: Vec<Arc<PrimaryAutoCommandBuffer>>,
     vertex_shader: Arc<ShaderModule>,
-    pub vertex_buffer: Subbuffer<[geometry::Dot]>,
-    fragment_shader: Arc<ShaderModule>,
+    pub vertex_buffer: Subbuffer<[geometry::Vertex]>,
     canvas: Canvas,
+    canvas_buffer: Subbuffer<[geometry::Dot]>,
+    fragment_shader: Arc<ShaderModule>,
     memory_allocator: Arc<GenericMemoryAllocator<FreeListAllocator>>,
 }
 impl VulkanGraphicsPipeline {
@@ -206,6 +207,43 @@ impl VulkanGraphicsPipeline {
         .unwrap()
     }
 
+    fn create_2d_image(
+        memory_allocator: Arc<StandardMemoryAllocator>,
+        usage: ImageUsage,
+        memory_type_filter: MemoryTypeFilter,
+        format: Format,
+        resolution: &PhysicalSize<u32>
+    ) -> Arc<Image> {
+        Image::new(
+            memory_allocator.clone(),
+            ImageCreateInfo {
+                image_type: ImageType::Dim2d,
+                format,
+                extent: [resolution.width, resolution.height, 1],
+                usage,
+                ..Default::default()
+            },
+            AllocationCreateInfo {
+                memory_type_filter,
+                ..Default::default()
+            },
+        )
+        .unwrap()
+    }
+
+    fn create_canvas_image(
+        memory_allocator: Arc<StandardMemoryAllocator>,
+        resolution: &PhysicalSize<u32>
+    ) -> Arc<Image> {
+        Self::create_2d_image(
+            memory_allocator.clone(),
+            ImageUsage::TRANSFER_DST | ImageUsage::STORAGE,
+            MemoryTypeFilter::PREFER_DEVICE,
+            Format::R8_UINT,
+            &resolution
+        )
+    }
+
     fn create_render_pass(device: Arc<Device>, swapchain: Arc<Swapchain>) -> Arc<RenderPass> {
         vulkano::single_pass_renderpass!(
             device,
@@ -302,7 +340,9 @@ impl VulkanGraphicsPipeline {
         queue: Arc<Queue>,
         pipeline: Arc<GraphicsPipeline>,
         framebuffers: &Vec<Arc<Framebuffer>>,
-        vertex_buffer: &Subbuffer<[geometry::Dot]>,
+        vertex_buffer: &Subbuffer<[geometry::Vertex]>,
+        canvas_buffer: &Subbuffer<[geometry::Dot]>,
+        canvas_image: Arc<Image>,
     ) -> Vec<Arc<PrimaryAutoCommandBuffer>> {
         let command_buffer_allocator = StandardCommandBufferAllocator::new(
             device,
@@ -331,6 +371,11 @@ impl VulkanGraphicsPipeline {
                     .bind_pipeline_graphics(pipeline.clone())
                     .unwrap()
                     .bind_vertex_buffers(0, vertex_buffer.clone())
+                    .unwrap()
+                    .copy_buffer_to_image(CopyBufferToImageInfo::buffer_image(
+                        canvas_buffer.clone(),
+                        canvas_image.clone()
+                    ))
                     .unwrap()
                     .draw(vertex_buffer.len() as u32, 1, 0, 0)
                     .unwrap()
@@ -368,12 +413,21 @@ impl VulkanGraphicsPipeline {
             self.viewport.clone(),
         );
 
+        self.canvas = Canvas::new(&self.window.inner_size());
+        
+        let new_canvas_image = Self::create_canvas_image(
+            self.memory_allocator.clone(),
+            &self.window.inner_size()
+        );
+
         self.command_buffers = Self::create_command_buffers(
             self.device.clone(),
             self.queue.clone(),
             new_pipeline,
             &new_framebuffers,
             &self.vertex_buffer,
+            &self.canvas_buffer,
+            new_canvas_image
         );
     }
 
@@ -453,6 +507,14 @@ impl VulkanGraphicsPipeline {
         let (swapchain, images) =
             Self::create_swapchain(device.clone(), vk_surface.clone(), window.clone());
 
+        // setup viewport
+        let resolution = PhysicalSize::new(1024, 1024);
+        let viewport = Viewport {
+            offset: [0.0, 0.0],
+            extent: [resolution.width as f32, resolution.height as f32],
+            depth_range: 0.0..=1.0,
+        };
+
         // setup vertex data
         let my_model = geometry::Model::new(
             [
@@ -461,21 +523,30 @@ impl VulkanGraphicsPipeline {
             ]
             .into_iter(),
         );
-        let canvas = Canvas::new(&PhysicalSize::new(100, 100));
 
-        //// setup vertex buffers
-        // let vertex_buffer = Self::create_buffer(
-        //     memory_allocator.clone(),
-        //     BufferUsage::VERTEX_BUFFER,
-        //     MemoryTypeFilter::PREFER_HOST | MemoryTypeFilter::HOST_SEQUENTIAL_WRITE,
-        //     // junk data because this buffer gets overwritten by staging buffer
-        //     my_model.into_vec_of_verticies()
-        // );
+        // setup vertex buffers
         let vertex_buffer = Self::create_buffer(
             memory_allocator.clone(),
             BufferUsage::VERTEX_BUFFER,
             MemoryTypeFilter::PREFER_HOST | MemoryTypeFilter::HOST_SEQUENTIAL_WRITE,
+            // junk data because this buffer gets overwritten by staging buffer
+            my_model.into_vec_of_verticies()
+        );
+
+        // canvas setup
+        let canvas = Canvas::new(&resolution);
+        let canvas_buffer = Self::create_buffer(
+            memory_allocator.clone(), 
+            BufferUsage::TRANSFER_SRC, 
+            MemoryTypeFilter::PREFER_HOST | MemoryTypeFilter::HOST_SEQUENTIAL_WRITE, 
             canvas.to_vec_of_dots()
+        );
+        let canvas_image = Self::create_2d_image(
+            memory_allocator.clone(),
+            ImageUsage::TRANSFER_DST | ImageUsage::STORAGE,
+            MemoryTypeFilter::PREFER_DEVICE,
+            Format::R8_UINT,
+            &resolution
         );
 
         // setup render pass
@@ -487,13 +558,6 @@ impl VulkanGraphicsPipeline {
         // load shaders
         let vertex_shader = load_shaders::load_vertex(device.clone()).unwrap();
         let fragment_shader = load_shaders::load_fragment(device.clone()).unwrap();
-
-        // setup viewport
-        let viewport = Viewport {
-            offset: [0.0, 0.0],
-            extent: [1024.0, 1024.0],
-            depth_range: 0.0..=1.0,
-        };
 
         // graphics pipeline
         let pipeline = Self::create_graphics_pipeline(
@@ -511,6 +575,8 @@ impl VulkanGraphicsPipeline {
             pipeline.clone(),
             &framebuffers,
             &vertex_buffer,
+            &canvas_buffer,
+            canvas_image,
         );
 
         // setup fences vector so CPU doesn't have to wait for GPU
@@ -520,7 +586,6 @@ impl VulkanGraphicsPipeline {
             device,
             fences,
             queue,
-            canvas,
             swapchain,
             window,
             viewport,
@@ -528,6 +593,8 @@ impl VulkanGraphicsPipeline {
             command_buffers,
             vertex_shader,
             vertex_buffer,
+            canvas,
+            canvas_buffer,
             fragment_shader,
             memory_allocator,
         }
