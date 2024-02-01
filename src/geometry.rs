@@ -1,4 +1,34 @@
 use vulkano::{buffer::BufferContents, pipeline::graphics::vertex_input::Vertex as VertexMacro};
+use winit::dpi::PhysicalSize;
+
+#[derive(BufferContents, VertexMacro, Clone)]
+#[repr(C)]
+pub struct Dot {
+    #[format(R8_UINT)]
+    pub dot_value: u8,
+}
+
+pub struct Canvas {
+    grid: Vec<Vec<Dot>>,
+}
+#[allow(dead_code)]
+impl Canvas {
+    pub fn new(resolution: &PhysicalSize<u32>) -> Self {
+        let grid = (0..resolution.height).map(|_| {
+            (0..resolution.width).map(|_| {
+                Dot { dot_value: 0 }
+            }).collect()
+        }).collect();
+        Self {
+            grid,
+        }
+    }
+
+    pub fn to_vec_of_dots(&self) -> Vec<Dot> {
+        self.grid.iter().flatten().cloned().collect()
+    }
+}
+
 
 #[derive(BufferContents, VertexMacro)]
 #[repr(C)]

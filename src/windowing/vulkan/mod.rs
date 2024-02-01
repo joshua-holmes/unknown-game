@@ -1,6 +1,6 @@
 use std::sync::Arc;
 
-use crate::geometry::{self};
+use crate::geometry::{self, Canvas};
 use vulkano::{
     buffer::{subbuffer::Subbuffer, BufferContents},
     buffer::{Buffer, BufferCreateInfo, BufferUsage},
@@ -45,9 +45,7 @@ use vulkano::{
     },
     Validated, Version, VulkanError, VulkanLibrary,
 };
-use winit::{event_loop::EventLoop, window::Window};
-
-use super::canvas::{Resolution, Canvas};
+use winit::{event_loop::EventLoop, window::Window, dpi::PhysicalSize};
 
 mod load_shaders;
 
@@ -65,8 +63,9 @@ pub struct VulkanGraphicsPipeline {
     render_pass: Arc<RenderPass>,
     command_buffers: Vec<Arc<PrimaryAutoCommandBuffer>>,
     vertex_shader: Arc<ShaderModule>,
-    pub vertex_buffer: Subbuffer<[geometry::Vertex]>,
+    pub vertex_buffer: Subbuffer<[geometry::Dot]>,
     fragment_shader: Arc<ShaderModule>,
+    canvas: Canvas,
     memory_allocator: Arc<GenericMemoryAllocator<FreeListAllocator>>,
 }
 impl VulkanGraphicsPipeline {
@@ -303,7 +302,7 @@ impl VulkanGraphicsPipeline {
         queue: Arc<Queue>,
         pipeline: Arc<GraphicsPipeline>,
         framebuffers: &Vec<Arc<Framebuffer>>,
-        vertex_buffer: &Subbuffer<[geometry::Vertex]>,
+        vertex_buffer: &Subbuffer<[geometry::Dot]>,
     ) -> Vec<Arc<PrimaryAutoCommandBuffer>> {
         let command_buffer_allocator = StandardCommandBufferAllocator::new(
             device,
@@ -454,7 +453,7 @@ impl VulkanGraphicsPipeline {
         let (swapchain, images) =
             Self::create_swapchain(device.clone(), vk_surface.clone(), window.clone());
 
-        // setup basic triangle
+        // setup vertex data
         let my_model = geometry::Model::new(
             [
                 geometry::Triangle::new([-0.5, -0.5], [0.5, -0.5], [-0.5, 0.5]),
@@ -462,14 +461,21 @@ impl VulkanGraphicsPipeline {
             ]
             .into_iter(),
         );
+        let canvas = Canvas::new(&PhysicalSize::new(100, 100));
 
-        // setup vertex buffers
+        //// setup vertex buffers
+        // let vertex_buffer = Self::create_buffer(
+        //     memory_allocator.clone(),
+        //     BufferUsage::VERTEX_BUFFER,
+        //     MemoryTypeFilter::PREFER_HOST | MemoryTypeFilter::HOST_SEQUENTIAL_WRITE,
+        //     // junk data because this buffer gets overwritten by staging buffer
+        //     my_model.into_vec_of_verticies()
+        // );
         let vertex_buffer = Self::create_buffer(
             memory_allocator.clone(),
             BufferUsage::VERTEX_BUFFER,
             MemoryTypeFilter::PREFER_HOST | MemoryTypeFilter::HOST_SEQUENTIAL_WRITE,
-            // junk data because this buffer gets overwritten by staging buffer
-            my_model.into_vec_of_verticies()
+            canvas.to_vec_of_dots()
         );
 
         // setup render pass
@@ -514,6 +520,7 @@ impl VulkanGraphicsPipeline {
             device,
             fences,
             queue,
+            canvas,
             swapchain,
             window,
             viewport,
