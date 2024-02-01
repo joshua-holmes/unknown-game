@@ -4,7 +4,6 @@ use winit::{event_loop::EventLoop, window::Window, error::OsError};
 
 mod vulkan;
 mod event_handler;
-mod canvas;
 
 use vulkan::VulkanGraphicsPipeline;
 
