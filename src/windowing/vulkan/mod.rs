@@ -58,14 +58,14 @@ pub struct VulkanGraphicsPipeline {
     pub fences: Vec<Option<Arc<Fence>>>,
     pub queue: Arc<Queue>,
     pub device: Arc<Device>,
+    pub vertex_buffer: Subbuffer<[geometry::Vertex]>,
+    pub canvas: Canvas,
+    pub canvas_buffers: Vec<Subbuffer<[geometry::Dot]>>,
     window: Arc<Window>,
     viewport: Viewport,
     render_pass: Arc<RenderPass>,
     command_buffers: Vec<Arc<PrimaryAutoCommandBuffer>>,
     vertex_shader: Arc<ShaderModule>,
-    pub vertex_buffer: Subbuffer<[geometry::Vertex]>,
-    canvas: Canvas,
-    canvas_buffers: Vec<Subbuffer<[geometry::Dot]>>,
     fragment_shader: Arc<ShaderModule>,
     memory_allocator: Arc<GenericMemoryAllocator<FreeListAllocator>>,
 }
@@ -342,23 +342,32 @@ impl VulkanGraphicsPipeline {
         framebuffers: &Vec<Arc<Framebuffer>>,
         vertex_buffer: &Subbuffer<[geometry::Vertex]>,
         canvas_buffers: &Vec<Subbuffer<[geometry::Dot]>>,
-        canvas_image: Arc<Image>,
+        canvas_images: Vec<Arc<Image>>,
     ) -> Vec<Arc<PrimaryAutoCommandBuffer>> {
         let command_buffer_allocator = StandardCommandBufferAllocator::new(
             device,
             StandardCommandBufferAllocatorCreateInfo::default(),
         );
 
+        let len = framebuffers.len();
+
         framebuffers
             .iter()
-            .zip(canvas_buffers)
-            .map(|(framebuffer, canvas_buffer)| {
+            .enumerate()
+            .map(|(i, framebuffer)| {
+                (framebuffer, &canvas_buffers[i], canvas_images[i].clone())
+            })
+            .map(|(framebuffer, canvas_buffer, canvas_image)| {
                 let mut builder = AutoCommandBufferBuilder::primary(
                     &command_buffer_allocator,
                     queue.queue_family_index(),
                     CommandBufferUsage::MultipleSubmit,
                 )
                 .unwrap(); // TODO: setup proper error handling
+
+                // if let Some(f) = fence {
+                //     f.wait(None).unwrap();
+                // }
 
                 builder
                     .copy_buffer_to_image(CopyBufferToImageInfo::buffer_image(
@@ -425,12 +434,14 @@ impl VulkanGraphicsPipeline {
 
         self.canvas = Canvas::new(&self.window.inner_size());
         
-        let new_canvas_image = Self::create_canvas_image(
-            self.memory_allocator.clone(),
-            &self.window.inner_size()
-        );
+        let new_canvas_images = (0..new_images.len()).map(|_| {
+            Self::create_canvas_image(
+                self.memory_allocator.clone(),
+                &self.window.inner_size()
+            )
+        })
+        .collect();
 
-        self.flush_swapchain();
         self.command_buffers = Self::create_command_buffers(
             self.device.clone(),
             self.queue.clone(),
@@ -438,7 +449,7 @@ impl VulkanGraphicsPipeline {
             &new_framebuffers,
             &self.vertex_buffer,
             &self.canvas_buffers,
-            new_canvas_image
+            new_canvas_images,
         );
     }
 
@@ -555,13 +566,16 @@ impl VulkanGraphicsPipeline {
             )
         })
         .collect();
-        let canvas_image = Self::create_2d_image(
-            memory_allocator.clone(),
-            ImageUsage::TRANSFER_DST | ImageUsage::STORAGE,
-            MemoryTypeFilter::PREFER_DEVICE,
-            Format::R8_UINT,
-            &resolution
-        );
+        let canvas_images = (0..images.len()).map(|_| {
+            Self::create_2d_image(
+                memory_allocator.clone(),
+                ImageUsage::TRANSFER_DST | ImageUsage::STORAGE,
+                MemoryTypeFilter::PREFER_DEVICE,
+                Format::R8_UINT,
+                &resolution
+            )
+        })
+        .collect();
 
         // setup render pass
         let render_pass = Self::create_render_pass(device.clone(), swapchain.clone());
@@ -590,7 +604,7 @@ impl VulkanGraphicsPipeline {
             &framebuffers,
             &vertex_buffer,
             &canvas_buffers,
-            canvas_image,
+            canvas_images,
         );
 
         // setup fences vector so CPU doesn't have to wait for GPU
