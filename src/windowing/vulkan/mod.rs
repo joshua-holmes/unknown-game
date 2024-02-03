@@ -32,7 +32,7 @@ use vulkano::{
             GraphicsPipelineCreateInfo,
         },
         layout::PipelineDescriptorSetLayoutCreateInfo,
-        GraphicsPipeline, PipelineLayout, PipelineShaderStageCreateInfo,
+        GraphicsPipeline, PipelineLayout, PipelineShaderStageCreateInfo, PipelineBindPoint, Pipeline,
     },
     render_pass::{Framebuffer, FramebufferCreateInfo, RenderPass, Subpass},
     shader::ShaderModule,
@@ -45,7 +45,7 @@ use vulkano::{
         future::{FenceSignalFuture, JoinFuture},
         GpuFuture,
     },
-    Validated, Version, VulkanError, VulkanLibrary,
+    Validated, Version, VulkanError, VulkanLibrary, descriptor_set::{DescriptorSet, PersistentDescriptorSet, allocator::{DescriptorSetAlloc, DescriptorSetAllocator, StandardDescriptorSetAllocator, StandardDescriptorSetAllocatorCreateInfo}, layout::{DescriptorSetLayout, DescriptorSetLayoutCreateInfo}, WriteDescriptorSet, DescriptorBufferInfo, CopyDescriptorSet},
 };
 use winit::{dpi::PhysicalSize, event_loop::EventLoop, window::Window};
 
@@ -58,11 +58,11 @@ pub type Fence = FenceSignalFuture<
 pub struct VulkanGraphicsPipeline {
     pub swapchain: Arc<Swapchain>,
     pub fences: Vec<Option<Arc<Fence>>>,
-    pub queue: Arc<Queue>,
-    pub device: Arc<Device>,
     pub vertex_buffer: Subbuffer<[geometry::Vertex]>,
     pub canvas: Canvas,
     pub canvas_buffers: Vec<Subbuffer<[geometry::Dot]>>,
+    queue: Arc<Queue>,
+    device: Arc<Device>,
     window: Arc<Window>,
     viewport: Viewport,
     render_pass: Arc<RenderPass>,
@@ -70,6 +70,9 @@ pub struct VulkanGraphicsPipeline {
     vertex_shader: Arc<ShaderModule>,
     fragment_shader: Arc<ShaderModule>,
     memory_allocator: Arc<GenericMemoryAllocator<FreeListAllocator>>,
+    descriptor_set_allocator: StandardDescriptorSetAllocator,
+    descriptor_set_layout: Arc<DescriptorSetLayout>,
+    descriptor_set: Arc<PersistentDescriptorSet>,
 }
 impl VulkanGraphicsPipeline {
     fn init_vulkan_and_window(
@@ -351,6 +354,27 @@ impl VulkanGraphicsPipeline {
         .unwrap()
     }
 
+    fn create_descriptor_set(
+        device: Arc<Device>,
+        descriptor_set_allocator: &StandardDescriptorSetAllocator,
+        descriptor_set_layout: Arc<DescriptorSetLayout>,
+        canvas_buffers: &Vec<Subbuffer<[geometry::Dot]>>,
+    ) -> Arc<PersistentDescriptorSet> {
+        PersistentDescriptorSet::new(
+            descriptor_set_allocator,
+            descriptor_set_layout.clone(),
+            canvas_buffers.into_iter().enumerate().map(|(i, buf)| {
+                WriteDescriptorSet::buffer(
+                    i as u32,
+                    buf.clone()
+                )
+            })
+            .collect::<Vec<_>>(),
+            []
+        )
+        .unwrap()
+    }
+
     fn create_command_buffers(
         device: Arc<Device>,
         queue: Arc<Queue>,
@@ -382,11 +406,11 @@ impl VulkanGraphicsPipeline {
                 // }
 
                 builder
-                    .copy_buffer_to_image(CopyBufferToImageInfo::buffer_image(
-                        canvas_buffer.clone(),
-                        canvas_image.clone(),
-                    ))
-                    .unwrap()
+                    // .copy_buffer_to_image(CopyBufferToImageInfo::buffer_image(
+                    //     canvas_buffer.clone(),
+                    //     canvas_image.clone(),
+                    // ))
+                    // .unwrap()
                     .begin_render_pass(
                         RenderPassBeginInfo {
                             clear_values: vec![Some(ClearValue::Float([0., 0., 0., 1.]))],
@@ -452,6 +476,13 @@ impl VulkanGraphicsPipeline {
             new_images.len() as u32,
         );
 
+        let descriptor_set = Self::create_descriptor_set(
+            self.device.clone(),
+            &self.descriptor_set_allocator,
+            self.descriptor_set_layout.clone(),
+            &canvas_buffers,
+        );
+
         self.command_buffers = Self::create_command_buffers(
             self.device.clone(),
             self.queue.clone(),
@@ -461,6 +492,7 @@ impl VulkanGraphicsPipeline {
             &self.canvas_buffers,
             &new_canvas_images,
         );
+
     }
 
     pub fn display_next_frame(&mut self) {
@@ -570,6 +602,29 @@ impl VulkanGraphicsPipeline {
         let canvas_images =
             Self::create_canvas_images(memory_allocator.clone(), &resolution, images.len() as u32);
 
+        // create descriptor set allocator
+        let descriptor_set_allocator = StandardDescriptorSetAllocator::new(
+            device.clone(),
+            StandardDescriptorSetAllocatorCreateInfo {
+                ..Default::default()
+            }
+        );
+
+        // create descriptor set layout
+        let descriptor_set_layout = DescriptorSetLayout::new(
+            device.clone(),
+            DescriptorSetLayoutCreateInfo::default()
+        )
+            .unwrap();
+
+        // create descriptor set
+        let descriptor_set = Self::create_descriptor_set(
+            device.clone(),
+            &descriptor_set_allocator,
+            descriptor_set_layout.clone(),
+            &canvas_buffers,
+        );
+
         // setup render pass
         let render_pass = Self::create_render_pass(device.clone(), swapchain.clone());
 
@@ -618,6 +673,9 @@ impl VulkanGraphicsPipeline {
             canvas_buffers,
             fragment_shader,
             memory_allocator,
+            descriptor_set_allocator,
+            descriptor_set_layout,
+            descriptor_set,
         }
     }
 }
