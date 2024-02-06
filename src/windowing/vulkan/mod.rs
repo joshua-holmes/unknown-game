@@ -239,32 +239,6 @@ impl VulkanGraphicsPipeline {
             .collect()
     }
 
-    fn create_canvas_images(
-        memory_allocator: Arc<StandardMemoryAllocator>,
-        resolution: &PhysicalSize<u32>,
-        num_of_images: u32,
-    ) -> Vec<Arc<Image>> {
-        (0..num_of_images)
-            .map(|_| {
-                Image::new(
-                    memory_allocator.clone(),
-                    ImageCreateInfo {
-                        image_type: ImageType::Dim2d,
-                        format: Format::R8_UINT,
-                        extent: [resolution.width, resolution.height, 1],
-                        usage: ImageUsage::TRANSFER_DST | ImageUsage::STORAGE,
-                        ..Default::default()
-                    },
-                    AllocationCreateInfo {
-                        memory_type_filter: MemoryTypeFilter::PREFER_DEVICE,
-                        ..Default::default()
-                    },
-                )
-                .unwrap()
-            })
-            .collect()
-    }
-
     fn create_render_pass(device: Arc<Device>, swapchain: Arc<Swapchain>) -> Arc<RenderPass> {
         vulkano::single_pass_renderpass!(
             device,
