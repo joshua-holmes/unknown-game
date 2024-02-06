@@ -1,4 +1,4 @@
-use std::sync::Arc;
+use std::{sync::Arc, collections::HashMap};
 
 use crate::geometry::{self, Canvas};
 use vulkano::{
@@ -11,7 +11,7 @@ use vulkano::{
         SubpassEndInfo,
     },
     device::{
-        physical::PhysicalDeviceType, Device, DeviceCreateInfo, DeviceExtensions, Queue,
+        physical::PhysicalDeviceType, Device, DeviceCreateInfo, DeviceExtensions, Queue, Features,
         QueueCreateInfo, QueueFlags,
     },
     format::{ClearValue, Format},
@@ -45,7 +45,7 @@ use vulkano::{
         future::{FenceSignalFuture, JoinFuture},
         GpuFuture,
     },
-    Validated, Version, VulkanError, VulkanLibrary, descriptor_set::{DescriptorSet, PersistentDescriptorSet, allocator::{DescriptorSetAlloc, DescriptorSetAllocator, StandardDescriptorSetAllocator, StandardDescriptorSetAllocatorCreateInfo}, layout::{DescriptorSetLayout, DescriptorSetLayoutCreateInfo}, WriteDescriptorSet, DescriptorBufferInfo, CopyDescriptorSet},
+    Validated, Version, VulkanError, VulkanLibrary, descriptor_set::{DescriptorSet, PersistentDescriptorSet, allocator::{DescriptorSetAlloc, DescriptorSetAllocator, StandardDescriptorSetAllocator, StandardDescriptorSetAllocatorCreateInfo}, layout::{DescriptorSetLayout, DescriptorSetLayoutCreateInfo, DescriptorSetLayoutCreateFlags}, WriteDescriptorSet, DescriptorBufferInfo, CopyDescriptorSet, pool::{DescriptorPool, DescriptorPoolCreateInfo}},
 };
 use winit::{dpi::PhysicalSize, event_loop::EventLoop, window::Window};
 
@@ -72,7 +72,6 @@ pub struct VulkanGraphicsPipeline {
     memory_allocator: Arc<GenericMemoryAllocator<FreeListAllocator>>,
     descriptor_set_allocator: StandardDescriptorSetAllocator,
     descriptor_set_layout: Arc<DescriptorSetLayout>,
-    descriptor_set: Arc<PersistentDescriptorSet>,
 }
 impl VulkanGraphicsPipeline {
     fn init_vulkan_and_window(
@@ -148,6 +147,10 @@ impl VulkanGraphicsPipeline {
                             ..Default::default()
                         }],
                         enabled_extensions: device_extensions,
+                        enabled_features: Features {
+                            runtime_descriptor_array: true,
+                            ..Features::empty()
+                        },
                         ..Default::default()
                     },
                 )
@@ -354,22 +357,17 @@ impl VulkanGraphicsPipeline {
         .unwrap()
     }
 
+    // descriptor set, which so far only holds the canvas buffers
+    // the buffers here get updated every frame
     fn create_descriptor_set(
-        device: Arc<Device>,
         descriptor_set_allocator: &StandardDescriptorSetAllocator,
         descriptor_set_layout: Arc<DescriptorSetLayout>,
-        canvas_buffers: &Vec<Subbuffer<[geometry::Dot]>>,
+        canvas_buffers: Vec<Subbuffer<[geometry::Dot]>>,
     ) -> Arc<PersistentDescriptorSet> {
         PersistentDescriptorSet::new(
             descriptor_set_allocator,
             descriptor_set_layout.clone(),
-            canvas_buffers.into_iter().enumerate().map(|(i, buf)| {
-                WriteDescriptorSet::buffer(
-                    i as u32,
-                    buf.clone()
-                )
-            })
-            .collect::<Vec<_>>(),
+            [WriteDescriptorSet::buffer_array(0, 1, canvas_buffers)],
             []
         )
         .unwrap()
@@ -381,8 +379,7 @@ impl VulkanGraphicsPipeline {
         pipeline: Arc<GraphicsPipeline>,
         framebuffers: &Vec<Arc<Framebuffer>>,
         vertex_buffer: &Subbuffer<[geometry::Vertex]>,
-        canvas_buffers: &Vec<Subbuffer<[geometry::Dot]>>,
-        canvas_images: &Vec<Arc<Image>>,
+        descriptor_set: Arc<PersistentDescriptorSet>,
     ) -> Vec<Arc<PrimaryAutoCommandBuffer>> {
         let command_buffer_allocator = StandardCommandBufferAllocator::new(
             device,
@@ -391,9 +388,7 @@ impl VulkanGraphicsPipeline {
 
         framebuffers
             .iter()
-            .enumerate()
-            .map(|(i, framebuffer)| (framebuffer, &canvas_buffers[i], canvas_images[i].clone()))
-            .map(|(framebuffer, canvas_buffer, canvas_image)| {
+            .map(|framebuffer| {
                 let mut builder = AutoCommandBufferBuilder::primary(
                     &command_buffer_allocator,
                     queue.queue_family_index(),
@@ -401,16 +396,7 @@ impl VulkanGraphicsPipeline {
                 )
                 .unwrap(); // TODO: setup proper error handling
 
-                // if let Some(f) = fence {
-                //     f.wait(None).unwrap();
-                // }
-
                 builder
-                    // .copy_buffer_to_image(CopyBufferToImageInfo::buffer_image(
-                    //     canvas_buffer.clone(),
-                    //     canvas_image.clone(),
-                    // ))
-                    // .unwrap()
                     .begin_render_pass(
                         RenderPassBeginInfo {
                             clear_values: vec![Some(ClearValue::Float([0., 0., 0., 1.]))],
@@ -422,6 +408,13 @@ impl VulkanGraphicsPipeline {
                     .bind_pipeline_graphics(pipeline.clone())
                     .unwrap()
                     .bind_vertex_buffers(0, vertex_buffer.clone())
+                    .unwrap()
+                    .bind_descriptor_sets(
+                        PipelineBindPoint::Graphics,
+                        pipeline.layout().clone(),
+                        1,
+                        [descriptor_set.clone()].to_vec()
+                    )
                     .unwrap()
                     .draw(vertex_buffer.len() as u32, 1, 0, 0)
                     .unwrap()
@@ -468,31 +461,32 @@ impl VulkanGraphicsPipeline {
             self.viewport.clone(),
         );
 
-        self.canvas = Canvas::new(&self.window.inner_size());
+        let new_canvas = Canvas::new(&self.window.inner_size());
 
-        let new_canvas_images = Self::create_canvas_images(
+        let new_canvas_buffers = Self::create_canvas_buffers(
             self.memory_allocator.clone(),
-            &self.window.inner_size(),
-            new_images.len() as u32,
+            new_canvas.to_vec_of_dots(),
+            new_images.len() as u32
         );
 
-        let descriptor_set = Self::create_descriptor_set(
-            self.device.clone(),
+        let new_descriptor_set = Self::create_descriptor_set(
             &self.descriptor_set_allocator,
             self.descriptor_set_layout.clone(),
-            &canvas_buffers,
+            new_canvas_buffers.clone(),
         );
 
-        self.command_buffers = Self::create_command_buffers(
+        let new_command_buffers = Self::create_command_buffers(
             self.device.clone(),
             self.queue.clone(),
             new_pipeline,
             &new_framebuffers,
             &self.vertex_buffer,
-            &self.canvas_buffers,
-            &new_canvas_images,
+            new_descriptor_set.clone()
         );
 
+        self.canvas = new_canvas;
+        self.canvas_buffers = new_canvas_buffers;
+        self.command_buffers = new_command_buffers;
     }
 
     pub fn display_next_frame(&mut self) {
@@ -599,31 +593,6 @@ impl VulkanGraphicsPipeline {
             canvas.to_vec_of_dots(),
             images.len() as u32,
         );
-        let canvas_images =
-            Self::create_canvas_images(memory_allocator.clone(), &resolution, images.len() as u32);
-
-        // create descriptor set allocator
-        let descriptor_set_allocator = StandardDescriptorSetAllocator::new(
-            device.clone(),
-            StandardDescriptorSetAllocatorCreateInfo {
-                ..Default::default()
-            }
-        );
-
-        // create descriptor set layout
-        let descriptor_set_layout = DescriptorSetLayout::new(
-            device.clone(),
-            DescriptorSetLayoutCreateInfo::default()
-        )
-            .unwrap();
-
-        // create descriptor set
-        let descriptor_set = Self::create_descriptor_set(
-            device.clone(),
-            &descriptor_set_allocator,
-            descriptor_set_layout.clone(),
-            &canvas_buffers,
-        );
 
         // setup render pass
         let render_pass = Self::create_render_pass(device.clone(), swapchain.clone());
@@ -644,6 +613,25 @@ impl VulkanGraphicsPipeline {
             viewport.clone(),
         );
 
+        // get descriptor set layout
+        let descriptor_set_layout = pipeline.layout().set_layouts().first().unwrap().clone();
+
+        // create descriptor set allocator
+        let descriptor_set_allocator = StandardDescriptorSetAllocator::new(
+            device.clone(),
+            StandardDescriptorSetAllocatorCreateInfo {
+                update_after_bind: true,
+                ..Default::default()
+            }
+        );
+
+        // create descriptor set
+        let descriptor_set = Self::create_descriptor_set(
+            &descriptor_set_allocator,
+            descriptor_set_layout.clone(),
+            canvas_buffers.clone(),
+        );
+
         // create command buffers
         let command_buffers = Self::create_command_buffers(
             device.clone(),
@@ -651,8 +639,7 @@ impl VulkanGraphicsPipeline {
             pipeline.clone(),
             &framebuffers,
             &vertex_buffer,
-            &canvas_buffers,
-            &canvas_images,
+            descriptor_set.clone(),
         );
 
         // setup fences vector so CPU doesn't have to wait for GPU
@@ -675,7 +662,6 @@ impl VulkanGraphicsPipeline {
             memory_allocator,
             descriptor_set_allocator,
             descriptor_set_layout,
-            descriptor_set,
         }
     }
 }
