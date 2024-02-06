@@ -224,7 +224,7 @@ impl VulkanGraphicsPipeline {
                 Buffer::from_iter(
                     memory_allocator.clone(),
                     BufferCreateInfo {
-                        usage: BufferUsage::TRANSFER_SRC,
+                        usage: BufferUsage::STORAGE_BUFFER,
                         ..Default::default()
                     },
                     AllocationCreateInfo {
@@ -341,7 +341,12 @@ impl VulkanGraphicsPipeline {
         PersistentDescriptorSet::new(
             descriptor_set_allocator,
             descriptor_set_layout.clone(),
-            [WriteDescriptorSet::buffer_array(0, 1, canvas_buffers)],
+            canvas_buffers.into_iter().map(|buf| {
+                WriteDescriptorSet::buffer(
+                    0,
+                    buf.clone()
+                )
+            }).collect::<Vec<_>>(),
             []
         )
         .unwrap()
@@ -386,7 +391,7 @@ impl VulkanGraphicsPipeline {
                     .bind_descriptor_sets(
                         PipelineBindPoint::Graphics,
                         pipeline.layout().clone(),
-                        1,
+                        0,
                         [descriptor_set.clone()].to_vec()
                     )
                     .unwrap()
