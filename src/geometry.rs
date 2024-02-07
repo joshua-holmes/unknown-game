@@ -30,13 +30,14 @@ impl Canvas {
 }
 
 
-#[derive(BufferContents, VertexMacro)]
+#[derive(BufferContents, VertexMacro, Debug)]
 #[repr(C)]
 pub struct Vertex {
     #[format(R32G32_SFLOAT)]
     pub position: [f32; 2],
 }
 
+#[derive(Debug)]
 pub struct Triangle(Vertex, Vertex, Vertex);
 #[allow(dead_code)]
 impl Triangle {
@@ -53,6 +54,7 @@ impl Triangle {
     }
 }
 
+#[derive(Debug)]
 pub struct Model(Vec<Triangle>);
 #[allow(dead_code)]
 impl Model {
@@ -79,5 +81,10 @@ impl Model {
         let verticies_per_triangle = 3;
         self.0.len() as u32 * verticies_per_triangle
     }
+}
+
+pub struct Point {
+    pub x: u32,
+    pub y: u32,
 }
 

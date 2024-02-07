@@ -47,7 +47,7 @@ use vulkano::{
     },
     Validated, Version, VulkanError, VulkanLibrary, descriptor_set::{DescriptorSet, PersistentDescriptorSet, allocator::{DescriptorSetAlloc, DescriptorSetAllocator, StandardDescriptorSetAllocator, StandardDescriptorSetAllocatorCreateInfo}, layout::{DescriptorSetLayout, DescriptorSetLayoutCreateInfo, DescriptorSetLayoutCreateFlags}, WriteDescriptorSet, DescriptorBufferInfo, CopyDescriptorSet, pool::{DescriptorPool, DescriptorPoolCreateInfo}},
 };
-use winit::{dpi::PhysicalSize, event_loop::EventLoop, window::Window};
+use winit::{dpi::{PhysicalSize, PhysicalPosition}, event_loop::EventLoop, window::Window};
 
 mod load_shaders;
 
@@ -239,6 +239,30 @@ impl VulkanGraphicsPipeline {
             .collect()
     }
 
+    fn create_canvas_model(
+        resolution: &PhysicalSize<u32>,
+    ) -> geometry::Model {
+        // Set canvas to 100px X 100px for now
+        let size = PhysicalSize::<u32>::new(100, 100);
+
+        // Set canvas to center of screen for now
+        let offset_x = (size.width as f32 / 2.) / resolution.width as f32;
+        let offset_y = (size.height as f32 / 2.) / resolution.height as f32;
+
+        // calculate 4 corners
+        let norm_corner1 = [0. - offset_x, 0. - offset_y];
+        let norm_corner2 = [size.width as f32 / resolution.width as f32 - norm_corner1[0], norm_corner1[1]];
+        let norm_corner3 = [norm_corner1[0], size.height as f32 / resolution.height as f32 - norm_corner1[1]];
+        let norm_corner4 = [norm_corner2[0], norm_corner3[1]];
+
+        // generate triangles and model from corners
+        let triangle1 = geometry::Triangle::new(norm_corner1, norm_corner2, norm_corner3);
+        let triangle2 = geometry::Triangle::new(norm_corner2, norm_corner3, norm_corner4);
+        let model = geometry::Model::new([triangle1, triangle2].into_iter());
+
+        model
+    }
+
     fn create_render_pass(device: Arc<Device>, swapchain: Arc<Swapchain>) -> Arc<RenderPass> {
         vulkano::single_pass_renderpass!(
             device,
@@ -427,6 +451,8 @@ impl VulkanGraphicsPipeline {
     }
 
     pub fn recreate_swapchain_and_resize_window(&mut self) {
+        self.flush_swapchain();
+
         let new_images = self.recreate_swapchain();
         let new_framebuffers = Self::create_framebuffers(&new_images, self.render_pass.clone());
 
@@ -441,6 +467,12 @@ impl VulkanGraphicsPipeline {
         );
 
         let new_canvas = Canvas::new(&self.window.inner_size());
+
+        let new_canvas_model = Self::create_canvas_model(&self.window.inner_size());
+        let new_canvas_model_verts = new_canvas_model.into_vec_of_verticies();
+        for (i, vertex) in self.vertex_buffer.write().unwrap().iter_mut().enumerate() {
+            vertex.position = new_canvas_model_verts[i].position;
+        }
 
         let new_canvas_buffers = Self::create_canvas_buffers(
             self.memory_allocator.clone(),
@@ -553,13 +585,7 @@ impl VulkanGraphicsPipeline {
         };
 
         // setup vertex data
-        let my_model = geometry::Model::new(
-            [
-                geometry::Triangle::new([-0.5, -0.5], [0.5, -0.5], [-0.5, 0.5]),
-                geometry::Triangle::new([0.5, -0.5], [-0.5, 0.5], [0.5, 0.5]),
-            ]
-            .into_iter(),
-        );
+        let my_model = Self::create_canvas_model(&resolution);
 
         // setup vertex buffers
         let vertex_buffer =
