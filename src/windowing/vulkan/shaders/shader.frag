@@ -12,9 +12,11 @@ layout(binding = 0) buffer DotBuffer {
 
 
 void main() {
+    uint dot_value = dot.dots[0].dot_value;
     vec3 rgb = vec3(1);
-    if (dot.dots[0].dot_value == 9) {
-        rgb = vec3(0.1, 0.6, 0.9);
+    if (dot_value == 9) {
+        rgb = vec3(.1, .6, .9);
     }
+
     f_color = vec4(rgb, 1);
 }

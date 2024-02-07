@@ -4,8 +4,8 @@ use winit::dpi::PhysicalSize;
 #[derive(BufferContents, VertexMacro, Clone)]
 #[repr(C)]
 pub struct Dot {
-    #[format(R8_UINT)]
-    pub dot_value: u8,
+    #[format(R32_UINT)]
+    pub dot_value: u32,
 }
 
 pub struct Canvas {
