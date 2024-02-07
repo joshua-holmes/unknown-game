@@ -16,7 +16,7 @@ impl Canvas {
     pub fn new(resolution: &PhysicalSize<u32>) -> Self {
         let grid = (0..resolution.height).map(|_| {
             (0..resolution.width).map(|_| {
-                Dot { dot_value: 0 }
+                Dot { dot_value: 9 }
             }).collect()
         }).collect();
         Self {
