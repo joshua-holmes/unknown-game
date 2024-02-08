@@ -1,5 +1,6 @@
 #version 460
 
+// Dot with dot_value property which represents elemental type in the game
 struct Dot {
     uint dot_value;
 };
@@ -12,47 +13,41 @@ layout(binding = 0) buffer DotBuffer {
 
 
 void main() {
-    int canvas_w = 10;
-    int canvas_h = 4;
-    int device_w = 1920;
-    int device_h = 1080;
+    ivec2 canvas_res = ivec2(10, 4);
+    ivec2 device_res = ivec2(1920, 1080);
 
     // aspect ratios
-    float canvas_ar = float(canvas_w) / float(canvas_h);
-    float device_ar = float(device_w) / float(device_h);
+    float canvas_ar = float(canvas_res.x) / float(canvas_res.y);
+    float device_ar = float(device_res.x) / float(device_res.y);
 
-    int offset_x = 0;
-    int offset_y = 0;
-    float mult_x = 1;
-    float mult_y = 1;
+    ivec2 offset = ivec2(0, 0);
+    vec2 multi = ivec2(1, 1);
     if (device_ar > canvas_ar) {
-        float corrected_device_w = canvas_ar * float(device_h);
-        offset_x = int(round(
-            (float(device_w) - corrected_device_w) / 2.
+        float corrected_device_x = canvas_ar * float(device_res.y);
+        offset.x = int(round(
+            (float(device_res.x) - corrected_device_x) / 2.
         ));
-        mult_x = device_ar / canvas_ar;
+        multi.x = device_ar / canvas_ar;
     } else if (device_ar < canvas_ar) {
-        float corrected_device_h = float(device_w) / canvas_ar;
-        offset_y = int(round(
-            (float(device_h) - corrected_device_h) / 2.
+        float corrected_device_y = float(device_res.x) / canvas_ar;
+        offset.y = int(round(
+            (float(device_res.y) - corrected_device_y) / 2.
         ));
-        mult_y = canvas_ar / device_ar;
+        multi.y = canvas_ar / device_ar;
     }
 
-    float adjusted_x = floor(gl_FragCoord.x) - float(offset_x);
-    float adjusted_y = floor(gl_FragCoord.y) - float(offset_y);
-    int x = int(floor(adjusted_x * mult_x * float(canvas_w) / float(device_w)));
-    int y = int(floor(adjusted_y * mult_y * float(canvas_h) / float(device_h)));
+    vec2 adjusted = floor(gl_FragCoord.xy) - vec2(offset);
+    ivec2 canvas_coord = ivec2(floor(adjusted * multi * vec2(canvas_res) / vec2(device_res)));
 
-    if (x < 0 || x >= canvas_w) {
+    if (canvas_coord.x < 0 || canvas_coord.x >= canvas_res.x) {
         f_color = vec4(0);
         return;
-    } else if (y < 0 || y >= canvas_h) {
+    } else if (canvas_coord.y < 0 || canvas_coord.y >= canvas_res.y) {
         f_color = vec4(0);
         return;
     }
 
-    int flat_coord = x + (canvas_w * y);
+    int flat_coord = canvas_coord.x + (canvas_res.x * canvas_coord.y);
     uint dot_value = dot.dots[flat_coord].dot_value;
     // uint dot_value = dot.dots[2563].dot_value;
     vec3 rgb = vec3(0);
