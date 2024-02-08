@@ -12,8 +12,8 @@ layout(binding = 0) buffer DotBuffer {
 
 
 void main() {
-    int canvas_w = 8;
-    int canvas_h = 6;
+    int canvas_w = 10;
+    int canvas_h = 4;
     int device_w = 1920;
     int device_h = 1080;
 
@@ -32,6 +32,11 @@ void main() {
         ));
         mult_x = device_ar / canvas_ar;
     } else if (device_ar < canvas_ar) {
+        float corrected_device_h = float(device_w) / canvas_ar;
+        offset_y = int(round(
+            (float(device_h) - corrected_device_h) / 2.
+        ));
+        mult_y = canvas_ar / device_ar;
     }
 
     float adjusted_x = floor(gl_FragCoord.x) - float(offset_x);
@@ -40,6 +45,9 @@ void main() {
     int y = int(floor(adjusted_y * mult_y * float(canvas_h) / float(device_h)));
 
     if (x < 0 || x >= canvas_w) {
+        f_color = vec4(0);
+        return;
+    } else if (y < 0 || y >= canvas_h) {
         f_color = vec4(0);
         return;
     }

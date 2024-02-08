@@ -555,7 +555,7 @@ impl VulkanGraphicsPipeline {
             Self::create_vertex_buffer(memory_allocator.clone(), canvas_model.into_vec_of_verticies());
 
         // canvas setup
-        let canvas_resolution = PhysicalSize::new(8, 6);
+        let canvas_resolution = PhysicalSize::new(10, 4);
         let canvas = Canvas::new(&canvas_resolution);
         let canvas_buffers = Self::create_canvas_buffers(
             memory_allocator.clone(),
