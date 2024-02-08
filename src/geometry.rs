@@ -1,7 +1,7 @@
 use vulkano::{buffer::BufferContents, pipeline::graphics::vertex_input::Vertex as VertexMacro};
 use winit::dpi::PhysicalSize;
 
-#[derive(BufferContents, VertexMacro, Clone)]
+#[derive(BufferContents, VertexMacro, Clone, Debug)]
 #[repr(C)]
 pub struct Dot {
     #[format(R32_UINT)]
@@ -14,9 +14,10 @@ pub struct Canvas {
 #[allow(dead_code)]
 impl Canvas {
     pub fn new(resolution: &PhysicalSize<u32>) -> Self {
-        let grid = (0..resolution.height).map(|_| {
-            (0..resolution.width).map(|_| {
-                Dot { dot_value: 9 }
+        let grid = (0..resolution.height).map(|j| {
+            (0..resolution.width).map(|i| {
+                Dot { dot_value: if (i + j % 2) % 2 == 0 { 9 } else { 0 } }
+                // Dot { dot_value: 9 }
             }).collect()
         }).collect();
         Self {
