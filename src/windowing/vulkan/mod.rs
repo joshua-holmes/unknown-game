@@ -464,6 +464,10 @@ impl VulkanGraphicsPipeline {
     }
 
     pub fn display_next_frame(&mut self) {
+        // if set to true any time during this function call, swapchain will
+        // be recreated and this function will be called again
+        let mut recreate_swapchain_after_presentation = false;
+
         // aquire current image index and time that the image finishes being created
         let (image_i, suboptimal, acquire_image_future) =
             match swapchain::acquire_next_image(self.swapchain.clone(), None) {
@@ -478,7 +482,7 @@ impl VulkanGraphicsPipeline {
 
         // suboptimal if properties of swapchain and image differ, image will still display
         if suboptimal {
-            self.recreate_swapchain();
+            recreate_swapchain_after_presentation = true;
             println!("WARNING: swapchain function is suboptimal");
         }
 
@@ -515,7 +519,7 @@ impl VulkanGraphicsPipeline {
         self.fences[image_i as usize] = match current_display_future.map_err(Validated::unwrap) {
             Ok(value) => Some(Arc::new(value)),
             Err(VulkanError::OutOfDate) => {
-                self.recreate_swapchain();
+                recreate_swapchain_after_presentation = true;
                 None
             }
             Err(e) => {
@@ -523,6 +527,11 @@ impl VulkanGraphicsPipeline {
                 None
             }
         };
+
+        if recreate_swapchain_after_presentation {
+            self.recreate_swapchain();
+            self.display_next_frame();
+        }
     }
 
     pub fn new(event_loop: &EventLoop<()>, window: Arc<Window>) -> Self {
