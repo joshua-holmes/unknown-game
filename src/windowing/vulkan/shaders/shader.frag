@@ -50,9 +50,11 @@ void main() {
     int flat_coord = canvas_coord.x + (canvas_res.x * canvas_coord.y);
     uint dot_value = dot.dots[flat_coord].dot_value;
     // uint dot_value = dot.dots[2563].dot_value;
-    vec3 rgb = vec3(0);
+    vec3 rgb = vec3(1);
     if (dot_value == 9) {
-        rgb = vec3(.9, .6, .1);
+        rgb = vec3(.9, .6, .1); // red
+    } else if (dot_value == 12) {
+        rgb = vec3(.1, .6, .9); // blue
     }
 
     f_color = vec4(rgb, 1);

@@ -18,6 +18,9 @@ pub fn handle_event(event: Event<()>, control_flow: &mut ControlFlow, pipeline: 
             pipeline.recreate_swapchain_and_resize_window();
         }
         Event::MainEventsCleared => {
+            for dot in pipeline.canvas.grid.iter_mut().flatten() {
+                dot.dot_value = 12;
+            }
             pipeline.display_next_frame();
         }
         _ => (),

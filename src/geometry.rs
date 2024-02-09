@@ -9,7 +9,7 @@ pub struct Dot {
 }
 
 pub struct Canvas {
-    grid: Vec<Vec<Dot>>,
+    pub grid: Vec<Vec<Dot>>,
 }
 #[allow(dead_code)]
 impl Canvas {
@@ -29,7 +29,6 @@ impl Canvas {
         self.grid.iter().flatten().cloned().collect()
     }
 }
-
 
 #[derive(BufferContents, VertexMacro, Debug)]
 #[repr(C)]

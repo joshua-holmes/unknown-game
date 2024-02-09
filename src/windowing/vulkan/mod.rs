@@ -57,6 +57,7 @@ pub type Fence = FenceSignalFuture<
 
 pub struct VulkanGraphicsPipeline {
     pub canvas: Canvas,
+    canvas_buffers: Vec<Subbuffer<[geometry::Dot]>>,
     swapchain: Arc<Swapchain>,
     fences: Vec<Option<Arc<Fence>>>,
     vertex_buffer: Subbuffer<[geometry::Vertex]>,
@@ -225,8 +226,9 @@ impl VulkanGraphicsPipeline {
                         ..Default::default()
                     },
                     AllocationCreateInfo {
-                        memory_type_filter: MemoryTypeFilter::PREFER_HOST
+                        memory_type_filter: MemoryTypeFilter::PREFER_DEVICE
                             | MemoryTypeFilter::HOST_SEQUENTIAL_WRITE,
+                        allocate_preference: MemoryAllocatePreference::AlwaysAllocate,
                         ..Default::default()
                     },
                     data.clone(),
@@ -347,12 +349,12 @@ impl VulkanGraphicsPipeline {
     fn create_descriptor_set(
         descriptor_set_allocator: &StandardDescriptorSetAllocator,
         descriptor_set_layout: Arc<DescriptorSetLayout>,
-        canvas_buffers: Vec<Subbuffer<[geometry::Dot]>>,
+        canvas_buffers: &Vec<Subbuffer<[geometry::Dot]>>,
     ) -> Arc<PersistentDescriptorSet> {
         PersistentDescriptorSet::new(
             descriptor_set_allocator,
             descriptor_set_layout.clone(),
-            canvas_buffers.into_iter().map(|buf| {
+            canvas_buffers.iter().map(|buf| {
                 WriteDescriptorSet::buffer(
                     0,
                     buf.clone()
@@ -491,6 +493,13 @@ impl VulkanGraphicsPipeline {
             image_fence.wait(None).unwrap();
         }
 
+        // write canvas data to buffer
+        for (dot, new_dot) in self.canvas_buffers[image_i as usize].write().unwrap().iter_mut().zip(self.canvas.grid.iter().flatten()) {
+            if dot.dot_value != new_dot.dot_value {
+                dot.dot_value = new_dot.dot_value;
+            }
+        }
+
         // get time that previous image finishes displaying (or now if there is no previous image)
         let previous_display_future = match self.fences[previous_image_i as usize].clone() {
             None => {
@@ -607,7 +616,7 @@ impl VulkanGraphicsPipeline {
         let descriptor_set = Self::create_descriptor_set(
             &descriptor_set_allocator,
             descriptor_set_layout.clone(),
-            canvas_buffers.clone(),
+            &canvas_buffers,
         );
 
         // create command buffers
@@ -635,6 +644,7 @@ impl VulkanGraphicsPipeline {
             vertex_shader,
             vertex_buffer,
             canvas,
+            canvas_buffers,
             fragment_shader,
             descriptor_set,
         }
