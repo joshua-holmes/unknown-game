@@ -57,7 +57,7 @@ pub type Fence = FenceSignalFuture<
 
 pub struct VulkanGraphicsPipeline {
     pub canvas: Canvas,
-    canvas_buffers: Vec<Subbuffer<[geometry::Dot]>>,
+    canvas_buffer: Subbuffer<[geometry::Dot]>,
     swapchain: Arc<Swapchain>,
     fences: Vec<Option<Arc<Fence>>>,
     vertex_buffer: Subbuffer<[geometry::Vertex]>,
@@ -214,30 +214,25 @@ impl VulkanGraphicsPipeline {
         .unwrap()
     }
 
-    fn create_canvas_buffers(
+    fn create_canvas_buffer(
         memory_allocator: Arc<StandardMemoryAllocator>,
         data: Vec<geometry::Dot>,
-        num_of_buffers: u32,
-    ) -> Vec<Subbuffer<[geometry::Dot]>> {
-        (0..num_of_buffers)
-            .map(|_| {
-                Buffer::from_iter(
-                    memory_allocator.clone(),
-                    BufferCreateInfo {
-                        usage: BufferUsage::STORAGE_BUFFER,
-                        ..Default::default()
-                    },
-                    AllocationCreateInfo {
-                        memory_type_filter: MemoryTypeFilter::PREFER_DEVICE
-                            | MemoryTypeFilter::HOST_SEQUENTIAL_WRITE,
-                        allocate_preference: MemoryAllocatePreference::AlwaysAllocate,
-                        ..Default::default()
-                    },
-                    data.clone(),
-                )
-                .unwrap()
-            })
-            .collect()
+    ) -> Subbuffer<[geometry::Dot]> {
+        Buffer::from_iter(
+            memory_allocator.clone(),
+            BufferCreateInfo {
+                usage: BufferUsage::STORAGE_BUFFER,
+                ..Default::default()
+            },
+            AllocationCreateInfo {
+                memory_type_filter: MemoryTypeFilter::PREFER_DEVICE
+                    | MemoryTypeFilter::HOST_SEQUENTIAL_WRITE,
+                allocate_preference: MemoryAllocatePreference::AlwaysAllocate,
+                ..Default::default()
+            },
+            data.clone(),
+        )
+        .unwrap()
     }
 
     fn create_canvas_model() -> geometry::Model {
@@ -351,17 +346,15 @@ impl VulkanGraphicsPipeline {
     fn create_descriptor_set(
         descriptor_set_allocator: &StandardDescriptorSetAllocator,
         descriptor_set_layout: Arc<DescriptorSetLayout>,
-        canvas_buffers: &Vec<Subbuffer<[geometry::Dot]>>,
+        canvas_buffer: &Subbuffer<[geometry::Dot]>,
     ) -> Arc<PersistentDescriptorSet> {
         PersistentDescriptorSet::new(
             descriptor_set_allocator,
             descriptor_set_layout.clone(),
-            canvas_buffers.iter().map(|buf| {
-                WriteDescriptorSet::buffer(
-                    0,
-                    buf.clone()
-                )
-            }).collect::<Vec<_>>(),
+            [WriteDescriptorSet::buffer(
+                0,
+                canvas_buffer.clone()
+            )],
             []
         )
         .unwrap()
@@ -495,8 +488,14 @@ impl VulkanGraphicsPipeline {
             image_fence.wait(None).unwrap();
         }
 
+        // wait for buffer to be available
+        // FIX: when Vulkano 0.35 drops, setup a multibuffer system using descriptor set binding updates to swap
+        // between buffers. That way, we don't need to wait for all images in the swapchain to complete presentation
+        // every frame, which defeats the purpose of the swapchain
+        self.flush_swapchain();
+
         // write canvas data to buffer
-        for (dot, new_dot) in self.canvas_buffers[image_i as usize].write().unwrap().iter_mut().zip(self.canvas.grid.iter().flatten()) {
+        for (dot, new_dot) in self.canvas_buffer.write().unwrap().iter_mut().zip(self.canvas.grid.iter().flatten()) {
             if dot.dot_value != new_dot.dot_value {
                 dot.dot_value = new_dot.dot_value;
             }
@@ -577,10 +576,9 @@ impl VulkanGraphicsPipeline {
         // canvas setup
         let canvas_resolution = PhysicalSize::new(10, 4);
         let canvas = Canvas::new(&canvas_resolution);
-        let canvas_buffers = Self::create_canvas_buffers(
+        let canvas_buffer = Self::create_canvas_buffer(
             memory_allocator.clone(),
             canvas.to_vec_of_dots(),
-            images.len() as u32,
         );
 
         // setup render pass
@@ -618,7 +616,7 @@ impl VulkanGraphicsPipeline {
         let descriptor_set = Self::create_descriptor_set(
             &descriptor_set_allocator,
             descriptor_set_layout.clone(),
-            &canvas_buffers,
+            &canvas_buffer,
         );
 
         // create command buffers
@@ -646,7 +644,7 @@ impl VulkanGraphicsPipeline {
             vertex_shader,
             vertex_buffer,
             canvas,
-            canvas_buffers,
+            canvas_buffer,
             fragment_shader,
             descriptor_set,
         }
