@@ -38,7 +38,7 @@ use vulkano::{
     shader::ShaderModule,
     swapchain::{
         self, PresentFuture, Surface, Swapchain, SwapchainAcquireFuture, SwapchainCreateInfo,
-        SwapchainPresentInfo,
+        SwapchainPresentInfo, PresentMode, FullScreenExclusive,
     },
     sync::{
         self,
@@ -181,6 +181,8 @@ impl VulkanGraphicsPipeline {
                 image_color_space,
                 image_extent: window.inner_size().into(),
                 image_usage: ImageUsage::COLOR_ATTACHMENT,
+                present_mode: PresentMode::Fifo, // TODO: switch to `Mailbox` mode potentially (aka triple buffering)
+                full_screen_exclusive: FullScreenExclusive::Default, // TODO: add full screen mode in the future, potentially
                 composite_alpha: capabilities
                     .supported_composite_alpha
                     .into_iter()
