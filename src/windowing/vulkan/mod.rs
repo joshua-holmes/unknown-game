@@ -1,8 +1,8 @@
-use std::{sync::Arc, collections::HashMap};
+use std::sync::Arc;
 
 use crate::geometry::{self, Canvas};
 use vulkano::{
-    buffer::{subbuffer::Subbuffer, BufferContents},
+    buffer::{subbuffer::Subbuffer},
     buffer::{Buffer, BufferCreateInfo, BufferUsage},
     command_buffer::{
         allocator::{StandardCommandBufferAllocator, StandardCommandBufferAllocatorCreateInfo},
@@ -31,7 +31,7 @@ use vulkano::{
             viewport::{Viewport, ViewportState},
             GraphicsPipelineCreateInfo,
         },
-        layout::PipelineDescriptorSetLayoutCreateInfo,
+        layout::{PipelineDescriptorSetLayoutCreateInfo, PipelineLayoutCreateInfo},
         GraphicsPipeline, PipelineLayout, PipelineShaderStageCreateInfo, PipelineBindPoint, Pipeline,
     },
     render_pass::{Framebuffer, FramebufferCreateInfo, RenderPass, Subpass},
@@ -45,15 +45,38 @@ use vulkano::{
         future::{FenceSignalFuture, JoinFuture},
         GpuFuture,
     },
-    Validated, Version, VulkanError, VulkanLibrary, descriptor_set::{DescriptorSet, PersistentDescriptorSet, allocator::{DescriptorSetAlloc, DescriptorSetAllocator, StandardDescriptorSetAllocator, StandardDescriptorSetAllocatorCreateInfo}, layout::{DescriptorSetLayout, DescriptorSetLayoutCreateInfo, DescriptorSetLayoutCreateFlags}, WriteDescriptorSet, DescriptorBufferInfo, CopyDescriptorSet, pool::{DescriptorPool, DescriptorPoolCreateInfo}},
+    Validated, Version, VulkanError, VulkanLibrary, descriptor_set::{DescriptorSet, PersistentDescriptorSet, allocator::{DescriptorSetAlloc, DescriptorSetAllocator, StandardDescriptorSetAllocator, StandardDescriptorSetAllocatorCreateInfo}, layout::{DescriptorSetLayout, DescriptorSetLayoutCreateInfo, DescriptorSetLayoutCreateFlags, DescriptorSetLayoutBinding, DescriptorType}, WriteDescriptorSet, DescriptorBufferInfo, CopyDescriptorSet, pool::{DescriptorPool, DescriptorPoolCreateInfo}},
 };
 use winit::{dpi::{PhysicalSize, PhysicalPosition}, event_loop::EventLoop, window::Window};
 
 mod load_shaders;
 
+// set number of the available descriptor sets
+// these numbers must align with what is used in the shaders
+const DS_PER_FRAME_STORAGE_SET_NUM: usize = 0;
+const DS_INFREQUENT_UNIFORM_SET_NUM: usize = 1;
+
+// window resolution is...well the window resolution
+// canvas resolution is the size of the game world in pixels
+const INITIAL_WINDOW_RESOLUTION: PhysicalSize<u32> = PhysicalSize::new(1024, 1024);
+const INITIAL_CANVAS_RESOLUTION: PhysicalSize<u32> = PhysicalSize::new(10, 4);
+
 pub type Fence = FenceSignalFuture<
     PresentFuture<CommandBufferExecFuture<JoinFuture<Box<dyn GpuFuture>, SwapchainAcquireFuture>>>,
 >;
+
+struct AppliedDescriptorSets {
+    ds_per_frame_storage: Arc<PersistentDescriptorSet>,
+    ds_infrequent_uniform: Arc<PersistentDescriptorSet>,
+}
+impl AppliedDescriptorSets {
+    fn clone_into_vec(&self) -> Vec<Arc<PersistentDescriptorSet>> {
+        vec![
+            self.ds_per_frame_storage.clone(),
+            self.ds_infrequent_uniform.clone(),
+        ]
+    }
+}
 
 pub struct VulkanGraphicsPipeline {
     pub canvas: Canvas,
@@ -69,7 +92,7 @@ pub struct VulkanGraphicsPipeline {
     command_buffers: Vec<Arc<PrimaryAutoCommandBuffer>>,
     vertex_shader: Arc<ShaderModule>,
     fragment_shader: Arc<ShaderModule>,
-    descriptor_set: Arc<PersistentDescriptorSet>,
+    descriptor_sets: AppliedDescriptorSets
 }
 impl VulkanGraphicsPipeline {
     fn init_vulkan_and_window(
@@ -190,6 +213,28 @@ impl VulkanGraphicsPipeline {
                     .unwrap(), // TODO: setup error handling
                 ..Default::default()
             },
+        )
+        .unwrap()
+    }
+
+    fn create_resolutions_buffer(
+        memory_allocator: Arc<StandardMemoryAllocator>,
+        window_resolution: &PhysicalSize<u32>,
+        canvas_resolution: &PhysicalSize<u32>,
+    ) -> Subbuffer<[geometry::Vec2]> {
+        Buffer::from_iter(
+            memory_allocator, 
+            BufferCreateInfo {
+                usage: BufferUsage::UNIFORM_BUFFER,
+                ..Default::default()
+            }, AllocationCreateInfo {
+                memory_type_filter: MemoryTypeFilter::PREFER_HOST | MemoryTypeFilter::HOST_RANDOM_ACCESS,
+                ..Default::default()
+            }, 
+            [
+                geometry::Vec2::from(window_resolution),
+                geometry::Vec2::from(canvas_resolution)
+            ]
         )
         .unwrap()
     }
@@ -343,17 +388,35 @@ impl VulkanGraphicsPipeline {
 
     // descriptor set, which so far only holds the canvas buffers
     // the buffers here get updated every frame
-    fn create_descriptor_set(
+    fn create_ds_per_frame_storage(
         descriptor_set_allocator: &StandardDescriptorSetAllocator,
         descriptor_set_layout: Arc<DescriptorSetLayout>,
         canvas_buffer: &Subbuffer<[geometry::Dot]>,
+    ) -> Arc<PersistentDescriptorSet> {
+            PersistentDescriptorSet::new(
+                descriptor_set_allocator,
+                descriptor_set_layout.clone(),
+                [WriteDescriptorSet::buffer(
+                    0,
+                    canvas_buffer.clone()
+                )],
+                []
+            )
+            .unwrap()
+    }
+
+    // descriptor set where the buffers get updated infrequently
+    fn create_ds_infrequent_uniform(
+        descriptor_set_allocator: &StandardDescriptorSetAllocator,
+        descriptor_set_layout: Arc<DescriptorSetLayout>,
+        resolutions_buffer: &Subbuffer<[geometry::Vec2]>,
     ) -> Arc<PersistentDescriptorSet> {
         PersistentDescriptorSet::new(
             descriptor_set_allocator,
             descriptor_set_layout.clone(),
             [WriteDescriptorSet::buffer(
                 0,
-                canvas_buffer.clone()
+                resolutions_buffer.clone()
             )],
             []
         )
@@ -366,7 +429,7 @@ impl VulkanGraphicsPipeline {
         pipeline: Arc<GraphicsPipeline>,
         framebuffers: &Vec<Arc<Framebuffer>>,
         vertex_buffer: &Subbuffer<[geometry::Vertex]>,
-        descriptor_set: Arc<PersistentDescriptorSet>,
+        descriptor_sets: &AppliedDescriptorSets,
     ) -> Vec<Arc<PrimaryAutoCommandBuffer>> {
         let command_buffer_allocator = StandardCommandBufferAllocator::new(
             device,
@@ -400,7 +463,7 @@ impl VulkanGraphicsPipeline {
                         PipelineBindPoint::Graphics,
                         pipeline.layout().clone(),
                         0,
-                        [descriptor_set.clone()].to_vec()
+                        descriptor_sets.clone_into_vec()
                     )
                     .unwrap()
                     .draw(vertex_buffer.len() as u32, 1, 0, 0)
@@ -454,7 +517,7 @@ impl VulkanGraphicsPipeline {
             new_pipeline,
             &new_framebuffers,
             &self.vertex_buffer,
-            self.descriptor_set.clone()
+            &self.descriptor_sets
         );
 
         self.command_buffers = new_command_buffers;
@@ -562,23 +625,27 @@ impl VulkanGraphicsPipeline {
         let resolution = PhysicalSize::new(1024, 1024);
         let viewport = Viewport {
             offset: [0.0, 0.0],
-            extent: [resolution.width as f32, resolution.height as f32],
+            extent: [INITIAL_WINDOW_RESOLUTION.width as f32, INITIAL_WINDOW_RESOLUTION.height as f32],
             depth_range: 0.0..=1.0,
         };
 
-        // setup vertex data
+        // vertex setup
         let canvas_model = Self::create_canvas_model();
-
-        // setup vertex buffers
         let vertex_buffer =
             Self::create_vertex_buffer(memory_allocator.clone(), canvas_model.into_vec_of_verticies());
 
         // canvas setup
-        let canvas_resolution = PhysicalSize::new(10, 4);
-        let canvas = Canvas::new(&canvas_resolution);
+        let canvas = Canvas::new(INITIAL_CANVAS_RESOLUTION);
         let canvas_buffer = Self::create_canvas_buffer(
             memory_allocator.clone(),
             canvas.to_vec_of_dots(),
+        );
+
+        // resolutions_setup
+        let resolutions_buffer = Self::create_resolutions_buffer(
+            memory_allocator.clone(),
+            &window.inner_size(),
+            &canvas.resolution()
         );
 
         // setup render pass
@@ -600,8 +667,8 @@ impl VulkanGraphicsPipeline {
             viewport.clone(),
         );
 
-        // get descriptor set layout
-        let descriptor_set_layout = pipeline.layout().set_layouts().first().unwrap().clone();
+        // get descriptor set layouts
+        let descriptor_set_layouts = pipeline.layout().set_layouts();
 
         // create descriptor set allocator
         let descriptor_set_allocator = StandardDescriptorSetAllocator::new(
@@ -612,12 +679,21 @@ impl VulkanGraphicsPipeline {
             }
         );
 
-        // create descriptor set
-        let descriptor_set = Self::create_descriptor_set(
+        // create descriptor sets
+        let ds_per_frame_storage = Self::create_ds_per_frame_storage(
             &descriptor_set_allocator,
-            descriptor_set_layout.clone(),
+            descriptor_set_layouts[DS_PER_FRAME_STORAGE_SET_NUM].clone(),
             &canvas_buffer,
         );
+        let ds_infrequent_uniform = Self::create_ds_infrequent_uniform(
+            &descriptor_set_allocator,
+            descriptor_set_layouts[DS_INFREQUENT_UNIFORM_SET_NUM].clone(),
+            &resolutions_buffer
+        );
+        let descriptor_sets = AppliedDescriptorSets {
+            ds_per_frame_storage,
+            ds_infrequent_uniform,
+        };
 
         // create command buffers
         let command_buffers = Self::create_command_buffers(
@@ -626,7 +702,7 @@ impl VulkanGraphicsPipeline {
             pipeline.clone(),
             &framebuffers,
             &vertex_buffer,
-            descriptor_set.clone(),
+            &descriptor_sets
         );
 
         // setup fences vector so CPU doesn't have to wait for GPU
@@ -646,7 +722,7 @@ impl VulkanGraphicsPipeline {
             canvas,
             canvas_buffer,
             fragment_shader,
-            descriptor_set,
+            descriptor_sets,
         }
     }
 }
