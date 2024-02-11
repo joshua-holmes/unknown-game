@@ -13,7 +13,7 @@ pub struct Canvas {
 }
 #[allow(dead_code)]
 impl Canvas {
-    pub fn new(resolution: &PhysicalSize<u32>) -> Self {
+    pub fn new(resolution: PhysicalSize<u32>) -> Self {
         let grid = (0..resolution.height).map(|j| {
             (0..resolution.width).map(|i| {
                 Dot { dot_value: if (i + j % 2) % 2 == 0 { 9 } else { 0 } }
@@ -27,6 +27,13 @@ impl Canvas {
 
     pub fn to_vec_of_dots(&self) -> Vec<Dot> {
         self.grid.iter().flatten().cloned().collect()
+    }
+
+    pub fn resolution(&self) -> PhysicalSize<u32> {
+        PhysicalSize {
+            height: self.grid.len() as u32,
+            width: self.grid[0].len() as u32
+        }
     }
 }
 
@@ -83,8 +90,27 @@ impl Model {
     }
 }
 
-pub struct Point {
-    pub x: u32,
-    pub y: u32,
+#[derive(BufferContents, VertexMacro, Clone, Debug)]
+#[repr(C)]
+pub struct Vec2 {
+    #[format(R32_SINT)]
+    pub x: i32,
+    #[format(R32_SINT)]
+    pub y: i32,
+}
+impl Vec2 {
+    pub fn new(x: i32, y: i32) -> Self {
+        Self { x, y }
+    }
+}
+impl From<PhysicalSize<u32>> for Vec2 {
+    fn from(value: PhysicalSize<u32>) -> Self {
+        Self { x: value.width as i32, y: value.height as i32 }
+    }
+}
+impl From<&PhysicalSize<u32>> for Vec2 {
+    fn from(value: &PhysicalSize<u32>) -> Self {
+        Self { x: value.width as i32, y: value.height as i32 }
+    }
 }
 
