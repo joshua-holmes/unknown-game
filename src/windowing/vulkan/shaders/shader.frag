@@ -4,17 +4,29 @@
 struct Dot {
     uint dot_value;
 };
+struct Resolution {
+    int x;
+    int y;
+};
 
 layout(location = 0) out vec4 f_color;
 
-layout(binding = 0) buffer DotBuffer {
+layout(set = 0, binding = 0) buffer DotBuffer {
     Dot dots[];
 } dot;
 
+layout(set = 1, binding = 0) uniform ResolutionsBuffer {
+    Resolution coord[];
+} resolutions;
+
 
 void main() {
-    ivec2 canvas_res = ivec2(10, 4);
+    // these need to work but they don't
+    Resolution d_res = resolutions.coord[0];
+    Resolution c_res = resolutions.coord[1];
+
     ivec2 device_res = ivec2(1920, 1080);
+    ivec2 canvas_res = ivec2(10, 4);
 
     // aspect ratios
     float canvas_ar = float(canvas_res.x) / float(canvas_res.y);
@@ -49,7 +61,7 @@ void main() {
 
     int flat_coord = canvas_coord.x + (canvas_res.x * canvas_coord.y);
     uint dot_value = dot.dots[flat_coord].dot_value;
-    // uint dot_value = dot.dots[2563].dot_value;
+
     vec3 rgb = vec3(1);
     if (dot_value == 9) {
         rgb = vec3(.9, .6, .1); // red

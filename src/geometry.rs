@@ -90,25 +90,23 @@ impl Model {
     }
 }
 
-#[derive(BufferContents, VertexMacro, Clone, Debug)]
+#[derive(BufferContents, Clone, Debug)]
 #[repr(C)]
-pub struct Vec2 {
-    #[format(R32_SINT)]
+pub struct Resolution {
     pub x: i32,
-    #[format(R32_SINT)]
     pub y: i32,
 }
-impl Vec2 {
-    pub fn new(x: i32, y: i32) -> Self {
-        Self { x, y }
+impl Resolution {
+    pub fn new(width: i32, height: i32) -> Self {
+        Self { x: width, y: height }
     }
 }
-impl From<PhysicalSize<u32>> for Vec2 {
+impl From<PhysicalSize<u32>> for Resolution {
     fn from(value: PhysicalSize<u32>) -> Self {
         Self { x: value.width as i32, y: value.height as i32 }
     }
 }
-impl From<&PhysicalSize<u32>> for Vec2 {
+impl From<&PhysicalSize<u32>> for Resolution {
     fn from(value: &PhysicalSize<u32>) -> Self {
         Self { x: value.width as i32, y: value.height as i32 }
     }

@@ -58,7 +58,7 @@ const DS_INFREQUENT_UNIFORM_SET_NUM: usize = 1;
 
 // window resolution is...well the window resolution
 // canvas resolution is the size of the game world in pixels
-const INITIAL_WINDOW_RESOLUTION: PhysicalSize<u32> = PhysicalSize::new(1024, 1024);
+const INITIAL_WINDOW_RESOLUTION: PhysicalSize<u32> = PhysicalSize::new(1920, 1080);
 const INITIAL_CANVAS_RESOLUTION: PhysicalSize<u32> = PhysicalSize::new(10, 4);
 
 pub type Fence = FenceSignalFuture<
@@ -221,7 +221,7 @@ impl VulkanGraphicsPipeline {
         memory_allocator: Arc<StandardMemoryAllocator>,
         window_resolution: &PhysicalSize<u32>,
         canvas_resolution: &PhysicalSize<u32>,
-    ) -> Subbuffer<[geometry::Vec2]> {
+    ) -> Subbuffer<[geometry::Resolution]> {
         Buffer::from_iter(
             memory_allocator, 
             BufferCreateInfo {
@@ -232,8 +232,8 @@ impl VulkanGraphicsPipeline {
                 ..Default::default()
             }, 
             [
-                geometry::Vec2::from(window_resolution),
-                geometry::Vec2::from(canvas_resolution)
+                geometry::Resolution::from(window_resolution),
+                geometry::Resolution::from(canvas_resolution)
             ]
         )
         .unwrap()
@@ -409,7 +409,7 @@ impl VulkanGraphicsPipeline {
     fn create_ds_infrequent_uniform(
         descriptor_set_allocator: &StandardDescriptorSetAllocator,
         descriptor_set_layout: Arc<DescriptorSetLayout>,
-        resolutions_buffer: &Subbuffer<[geometry::Vec2]>,
+        resolutions_buffer: &Subbuffer<[geometry::Resolution]>,
     ) -> Arc<PersistentDescriptorSet> {
         PersistentDescriptorSet::new(
             descriptor_set_allocator,
@@ -622,7 +622,6 @@ impl VulkanGraphicsPipeline {
             Self::create_swapchain(device.clone(), vk_surface.clone(), window.clone());
 
         // setup viewport
-        let resolution = PhysicalSize::new(1024, 1024);
         let viewport = Viewport {
             offset: [0.0, 0.0],
             extent: [INITIAL_WINDOW_RESOLUTION.width as f32, INITIAL_WINDOW_RESOLUTION.height as f32],
