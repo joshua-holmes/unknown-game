@@ -52,8 +52,8 @@ mod load_shaders;
 
 // set number of the available descriptor sets
 // these numbers must align with what is used in the shaders
-const DS_PER_FRAME_STORAGE_SET_NUM: usize = 0;
-const DS_INFREQUENT_UNIFORM_SET_NUM: usize = 1;
+const DS_PER_FRAME_STORAGE_SET_NUM: u32 = 0;
+const DS_INFREQUENT_UNIFORM_SET_NUM: u32 = 1;
 
 // canvas resolution is the size of the game world in pixels
 const INITIAL_CANVAS_RESOLUTION: PhysicalSize<u32> = PhysicalSize::new(10, 4);
@@ -62,16 +62,28 @@ pub type Fence = FenceSignalFuture<
     PresentFuture<CommandBufferExecFuture<JoinFuture<Box<dyn GpuFuture>, SwapchainAcquireFuture>>>,
 >;
 
+struct AppliedDescriptorSet {
+    set: Arc<PersistentDescriptorSet>,
+    set_number: u32,
+}
+
 struct AppliedDescriptorSets {
-    ds_per_frame_storage: Arc<PersistentDescriptorSet>,
-    ds_infrequent_uniform: Arc<PersistentDescriptorSet>,
+    ds_per_frame_storage: AppliedDescriptorSet,
+    ds_infrequent_uniform: AppliedDescriptorSet,
 }
 impl AppliedDescriptorSets {
-    fn clone_into_vec(&self) -> Vec<Arc<PersistentDescriptorSet>> {
-        vec![
-            self.ds_per_frame_storage.clone(),
-            self.ds_infrequent_uniform.clone(),
+    fn to_vec_of_sorted_sets(&self) -> Vec<Arc<PersistentDescriptorSet>> {
+        let mut sets = [
+            &self.ds_per_frame_storage,
+            &self.ds_infrequent_uniform,
         ]
+        .into_iter()
+        .collect::<Vec<_>>();
+        sets.sort_by_key(|ds| ds.set_number);
+        sets
+            .into_iter()
+            .map(|ds| ds.set.clone())
+            .collect()
     }
 }
 
@@ -385,41 +397,59 @@ impl VulkanGraphicsPipeline {
     // the buffers here get updated every frame
     fn create_ds_per_frame_storage(
         descriptor_set_allocator: &StandardDescriptorSetAllocator,
-        descriptor_set_layout: Arc<DescriptorSetLayout>,
+        pipeline: Arc<GraphicsPipeline>,
+        set_number: u32,
         canvas_buffer: &Subbuffer<[geometry::Dot]>,
-    ) -> Arc<PersistentDescriptorSet> {
-            PersistentDescriptorSet::new(
+    ) -> AppliedDescriptorSet {
+        let layout = pipeline
+            .layout()
+            .set_layouts()
+            .get(set_number as usize)
+            .unwrap();
+        AppliedDescriptorSet {
+            set: PersistentDescriptorSet::new(
                 descriptor_set_allocator,
-                descriptor_set_layout.clone(),
+                layout.clone(),
                 [WriteDescriptorSet::buffer(
                     0,
                     canvas_buffer.clone()
                 )],
                 []
             )
-            .unwrap()
+            .unwrap(),
+            set_number
+        }
     }
 
     // descriptor set where the buffers get updated infrequently
     fn create_ds_infrequent_uniform(
         descriptor_set_allocator: &StandardDescriptorSetAllocator,
-        descriptor_set_layout: Arc<DescriptorSetLayout>,
+        pipeline: Arc<GraphicsPipeline>,
+        set_number: u32,
         window_res_buffer: Subbuffer<[geometry::Resolution]>,
         canvas_res_buffer: Subbuffer<[geometry::Resolution]>,
-    ) -> Arc<PersistentDescriptorSet> {
-        PersistentDescriptorSet::new(
-            descriptor_set_allocator,
-            descriptor_set_layout.clone(),
-            [window_res_buffer, canvas_res_buffer].into_iter().enumerate().map(|(i, buf)| {
-                WriteDescriptorSet::buffer(
-                    i as u32,
-                    buf
-                )
-            })
-            .collect::<Vec<_>>(),
-            []
-        )
-        .unwrap()
+    ) -> AppliedDescriptorSet {
+        let layout = pipeline
+            .layout()
+            .set_layouts()
+            .get(set_number as usize)
+            .unwrap();
+        AppliedDescriptorSet {
+            set: PersistentDescriptorSet::new(
+                descriptor_set_allocator,
+                layout.clone(),
+                [window_res_buffer, canvas_res_buffer].into_iter().enumerate().map(|(i, buf)| {
+                    WriteDescriptorSet::buffer(
+                        i as u32,
+                        buf
+                    )
+                })
+                .collect::<Vec<_>>(),
+                []
+            )
+            .unwrap(),
+            set_number
+        }
     }
 
     fn create_command_buffers(
@@ -462,7 +492,7 @@ impl VulkanGraphicsPipeline {
                         PipelineBindPoint::Graphics,
                         pipeline.layout().clone(),
                         0,
-                        descriptor_sets.clone_into_vec()
+                        descriptor_sets.to_vec_of_sorted_sets()
                     )
                     .unwrap()
                     .draw(vertex_buffer.len() as u32, 1, 0, 0)
@@ -683,12 +713,14 @@ impl VulkanGraphicsPipeline {
         // create descriptor sets
         let ds_per_frame_storage = Self::create_ds_per_frame_storage(
             &descriptor_set_allocator,
-            descriptor_set_layouts[DS_PER_FRAME_STORAGE_SET_NUM].clone(),
+            pipeline.clone(),
+            DS_PER_FRAME_STORAGE_SET_NUM,
             &canvas_buffer,
         );
         let ds_infrequent_uniform = Self::create_ds_infrequent_uniform(
             &descriptor_set_allocator,
-            descriptor_set_layouts[DS_INFREQUENT_UNIFORM_SET_NUM].clone(),
+            pipeline.clone(),
+            DS_INFREQUENT_UNIFORM_SET_NUM,
             window_res_buffer,
             canvas_res_buffer,
         );
