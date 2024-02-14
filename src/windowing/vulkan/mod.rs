@@ -6,19 +6,18 @@ use vulkano::{
     buffer::{Buffer, BufferCreateInfo, BufferUsage},
     command_buffer::{
         allocator::{StandardCommandBufferAllocator, StandardCommandBufferAllocatorCreateInfo},
-        AutoCommandBufferBuilder, CommandBufferExecFuture, CommandBufferUsage, CopyBufferInfo,
-        CopyBufferToImageInfo, PrimaryAutoCommandBuffer, RenderPassBeginInfo, SubpassBeginInfo,
+        AutoCommandBufferBuilder, CommandBufferExecFuture, CommandBufferUsage, PrimaryAutoCommandBuffer, RenderPassBeginInfo, SubpassBeginInfo,
         SubpassEndInfo,
     },
     device::{
         physical::PhysicalDeviceType, Device, DeviceCreateInfo, DeviceExtensions, Queue, Features,
         QueueCreateInfo, QueueFlags,
     },
-    format::{ClearValue, Format},
-    image::{view::ImageView, Image, ImageCreateInfo, ImageType, ImageUsage},
+    format::{ClearValue},
+    image::{view::ImageView, Image, ImageUsage},
     instance::{Instance, InstanceCreateInfo},
     memory::allocator::{
-        AllocationCreateInfo, FreeListAllocator, GenericMemoryAllocator, MemoryAllocatePreference,
+        AllocationCreateInfo, MemoryAllocatePreference,
         MemoryTypeFilter, StandardMemoryAllocator,
     },
     pipeline::{
@@ -31,7 +30,7 @@ use vulkano::{
             viewport::{Viewport, ViewportState},
             GraphicsPipelineCreateInfo,
         },
-        layout::{PipelineDescriptorSetLayoutCreateInfo, PipelineLayoutCreateInfo},
+        layout::{PipelineDescriptorSetLayoutCreateInfo},
         GraphicsPipeline, PipelineLayout, PipelineShaderStageCreateInfo, PipelineBindPoint, Pipeline,
     },
     render_pass::{Framebuffer, FramebufferCreateInfo, RenderPass, Subpass},
@@ -45,9 +44,9 @@ use vulkano::{
         future::{FenceSignalFuture, JoinFuture},
         GpuFuture,
     },
-    Validated, Version, VulkanError, VulkanLibrary, descriptor_set::{DescriptorSet, PersistentDescriptorSet, allocator::{DescriptorSetAlloc, DescriptorSetAllocator, StandardDescriptorSetAllocator, StandardDescriptorSetAllocatorCreateInfo}, layout::{DescriptorSetLayout, DescriptorSetLayoutCreateInfo, DescriptorSetLayoutCreateFlags, DescriptorSetLayoutBinding, DescriptorType}, WriteDescriptorSet, DescriptorBufferInfo, CopyDescriptorSet, pool::{DescriptorPool, DescriptorPoolCreateInfo}},
+    Validated, Version, VulkanError, VulkanLibrary, descriptor_set::{DescriptorSet, PersistentDescriptorSet, allocator::{StandardDescriptorSetAllocator, StandardDescriptorSetAllocatorCreateInfo}, layout::{DescriptorSetLayout}, WriteDescriptorSet},
 };
-use winit::{dpi::{PhysicalSize, PhysicalPosition}, event_loop::EventLoop, window::Window};
+use winit::{dpi::{PhysicalSize}, event_loop::EventLoop, window::Window};
 
 mod load_shaders;
 
@@ -56,7 +55,6 @@ mod load_shaders;
 const DS_PER_FRAME_STORAGE_SET_NUM: usize = 0;
 const DS_INFREQUENT_UNIFORM_SET_NUM: usize = 1;
 
-// window resolution is...well the window resolution
 // canvas resolution is the size of the game world in pixels
 const INITIAL_CANVAS_RESOLUTION: PhysicalSize<u32> = PhysicalSize::new(10, 4);
 
