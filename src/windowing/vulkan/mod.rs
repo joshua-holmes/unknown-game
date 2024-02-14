@@ -58,7 +58,6 @@ const DS_INFREQUENT_UNIFORM_SET_NUM: usize = 1;
 
 // window resolution is...well the window resolution
 // canvas resolution is the size of the game world in pixels
-const INITIAL_WINDOW_RESOLUTION: PhysicalSize<u32> = PhysicalSize::new(1920, 1080);
 const INITIAL_CANVAS_RESOLUTION: PhysicalSize<u32> = PhysicalSize::new(10, 4);
 
 pub type Fence = FenceSignalFuture<
@@ -626,7 +625,7 @@ impl VulkanGraphicsPipeline {
         // setup viewport
         let viewport = Viewport {
             offset: [0.0, 0.0],
-            extent: [INITIAL_WINDOW_RESOLUTION.width as f32, INITIAL_WINDOW_RESOLUTION.height as f32],
+            extent: window.inner_size().into(),
             depth_range: 0.0..=1.0,
         };
 
@@ -645,7 +644,7 @@ impl VulkanGraphicsPipeline {
         // resolutions_setup
         let window_res_buffer = Self::create_resolution_buffer(
             memory_allocator.clone(),
-            PhysicalSize::new(INITIAL_WINDOW_RESOLUTION.width, INITIAL_WINDOW_RESOLUTION.height),
+            window.inner_size(),
         );
         let canvas_res_buffer = Self::create_resolution_buffer(
             memory_allocator.clone(),
