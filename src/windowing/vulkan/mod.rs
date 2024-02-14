@@ -698,9 +698,6 @@ impl VulkanGraphicsPipeline {
             viewport.clone(),
         );
 
-        // get descriptor set layouts
-        let descriptor_set_layouts = pipeline.layout().set_layouts();
-
         // create descriptor set allocator
         let descriptor_set_allocator = StandardDescriptorSetAllocator::new(
             device.clone(),
