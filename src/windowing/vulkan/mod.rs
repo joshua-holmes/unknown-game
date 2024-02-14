@@ -217,10 +217,9 @@ impl VulkanGraphicsPipeline {
         .unwrap()
     }
 
-    fn create_resolutions_buffer(
+    fn create_resolution_buffer(
         memory_allocator: Arc<StandardMemoryAllocator>,
-        window_resolution: &PhysicalSize<u32>,
-        canvas_resolution: &PhysicalSize<u32>,
+        resolution: PhysicalSize<u32>,
     ) -> Subbuffer<[geometry::Resolution]> {
         Buffer::from_iter(
             memory_allocator, 
@@ -232,8 +231,7 @@ impl VulkanGraphicsPipeline {
                 ..Default::default()
             }, 
             [
-                geometry::Resolution::from(window_resolution),
-                geometry::Resolution::from(canvas_resolution),
+                geometry::Resolution::from(resolution),
             ],
         )
         .unwrap()
@@ -409,15 +407,19 @@ impl VulkanGraphicsPipeline {
     fn create_ds_infrequent_uniform(
         descriptor_set_allocator: &StandardDescriptorSetAllocator,
         descriptor_set_layout: Arc<DescriptorSetLayout>,
-        resolutions_buffer: Subbuffer<[geometry::Resolution]>,
+        window_res_buffer: Subbuffer<[geometry::Resolution]>,
+        canvas_res_buffer: Subbuffer<[geometry::Resolution]>,
     ) -> Arc<PersistentDescriptorSet> {
         PersistentDescriptorSet::new(
             descriptor_set_allocator,
             descriptor_set_layout.clone(),
-            [WriteDescriptorSet::buffer(
-                0,
-                resolutions_buffer
-            )],
+            [window_res_buffer, canvas_res_buffer].into_iter().enumerate().map(|(i, buf)| {
+                WriteDescriptorSet::buffer(
+                    i as u32,
+                    buf
+                )
+            })
+            .collect::<Vec<_>>(),
             []
         )
         .unwrap()
@@ -641,10 +643,13 @@ impl VulkanGraphicsPipeline {
         );
 
         // resolutions_setup
-        let resolutions_buffer = Self::create_resolutions_buffer(
+        let window_res_buffer = Self::create_resolution_buffer(
             memory_allocator.clone(),
-            &PhysicalSize::new(INITIAL_WINDOW_RESOLUTION.width, INITIAL_WINDOW_RESOLUTION.height),
-            &canvas.resolution()
+            PhysicalSize::new(INITIAL_WINDOW_RESOLUTION.width, INITIAL_WINDOW_RESOLUTION.height),
+        );
+        let canvas_res_buffer = Self::create_resolution_buffer(
+            memory_allocator.clone(),
+            canvas.resolution(),
         );
 
         // setup render pass
@@ -687,7 +692,8 @@ impl VulkanGraphicsPipeline {
         let ds_infrequent_uniform = Self::create_ds_infrequent_uniform(
             &descriptor_set_allocator,
             descriptor_set_layouts[DS_INFREQUENT_UNIFORM_SET_NUM].clone(),
-            resolutions_buffer
+            window_res_buffer,
+            canvas_res_buffer,
         );
         let descriptor_sets = AppliedDescriptorSets {
             ds_per_frame_storage,

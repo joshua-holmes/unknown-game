@@ -15,15 +15,18 @@ layout(set = 0, binding = 0) buffer DotBuffer {
     Dot dots[];
 } dot;
 
-layout(set = 1, binding = 0) uniform ResolutionsBuffer {
-    Resolution coord[];
-} resolutions;
+layout(std140, set = 1, binding = 0) uniform WindowRes {
+    Resolution res;
+} window;
+layout(std140, set = 1, binding = 1) uniform CanvasRes {
+    Resolution res;
+} canvas;
 
 
 void main() {
     // these need to work but they don't
-    Resolution d_res = resolutions.coord[0];
-    Resolution c_res = resolutions.coord[1];
+    Resolution w_res = window.res;
+    Resolution c_res = canvas.res;
 
     ivec2 device_res = ivec2(1920, 1080);
     ivec2 canvas_res = ivec2(10, 4);
