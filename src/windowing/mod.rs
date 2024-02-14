@@ -2,10 +2,9 @@ use std::sync::Arc;
 
 use winit::{event_loop::EventLoop, window::Window, error::OsError};
 
-mod vulkan;
 mod event_handler;
 
-use vulkan::VulkanGraphicsPipeline;
+use super::rendering::VulkanGraphicsPipeline;
 
 enum WindowingError {
     OsError(OsError),
