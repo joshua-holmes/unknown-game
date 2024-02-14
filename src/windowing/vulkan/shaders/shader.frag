@@ -24,35 +24,31 @@ layout(std140, set = 1, binding = 1) uniform CanvasRes {
 
 
 void main() {
-    // these need to work but they don't
-    Resolution w_res = window.res;
-    Resolution c_res = canvas.res;
-
-    ivec2 device_res = ivec2(1920, 1080);
-    ivec2 canvas_res = ivec2(10, 4);
+    ivec2 window_res = ivec2(window.res.x, window.res.y);
+    ivec2 canvas_res = ivec2(canvas.res.x, canvas.res.y);
 
     // aspect ratios
+    float window_ar = float(window_res.x) / float(window_res.y);
     float canvas_ar = float(canvas_res.x) / float(canvas_res.y);
-    float device_ar = float(device_res.x) / float(device_res.y);
 
     ivec2 offset = ivec2(0, 0);
     vec2 multi = ivec2(1, 1);
-    if (device_ar > canvas_ar) {
-        float corrected_device_x = canvas_ar * float(device_res.y);
+    if (window_ar > canvas_ar) {
+        float corrected_window_x = canvas_ar * float(window_res.y);
         offset.x = int(round(
-            (float(device_res.x) - corrected_device_x) / 2.
+            (float(window_res.x) - corrected_window_x) / 2.
         ));
-        multi.x = device_ar / canvas_ar;
-    } else if (device_ar < canvas_ar) {
-        float corrected_device_y = float(device_res.x) / canvas_ar;
+        multi.x = window_ar / canvas_ar;
+    } else if (window_ar < canvas_ar) {
+        float corrected_window_y = float(window_res.x) / canvas_ar;
         offset.y = int(round(
-            (float(device_res.y) - corrected_device_y) / 2.
+            (float(window_res.y) - corrected_window_y) / 2.
         ));
-        multi.y = canvas_ar / device_ar;
+        multi.y = canvas_ar / window_ar;
     }
 
     vec2 adjusted = floor(gl_FragCoord.xy) - vec2(offset);
-    ivec2 canvas_coord = ivec2(floor(adjusted * multi * vec2(canvas_res) / vec2(device_res)));
+    ivec2 canvas_coord = ivec2(floor(adjusted * multi * vec2(canvas_res) / vec2(window_res)));
 
     if (canvas_coord.x < 0 || canvas_coord.x >= canvas_res.x) {
         f_color = vec4(0);
