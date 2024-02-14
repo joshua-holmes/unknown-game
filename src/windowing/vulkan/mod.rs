@@ -101,7 +101,8 @@ pub struct VulkanGraphicsPipeline {
     command_buffers: Vec<Arc<PrimaryAutoCommandBuffer>>,
     vertex_shader: Arc<ShaderModule>,
     fragment_shader: Arc<ShaderModule>,
-    descriptor_sets: AppliedDescriptorSets
+    descriptor_sets: AppliedDescriptorSets,
+    window_res_buffer: Subbuffer<[geometry::Resolution]>,
 }
 impl VulkanGraphicsPipeline {
     fn init_vulkan_and_window(
@@ -426,8 +427,8 @@ impl VulkanGraphicsPipeline {
         descriptor_set_allocator: &StandardDescriptorSetAllocator,
         pipeline: Arc<GraphicsPipeline>,
         set_number: u32,
-        window_res_buffer: Subbuffer<[geometry::Resolution]>,
-        canvas_res_buffer: Subbuffer<[geometry::Resolution]>,
+        window_res_buffer: &Subbuffer<[geometry::Resolution]>,
+        canvas_res_buffer: &Subbuffer<[geometry::Resolution]>,
     ) -> AppliedDescriptorSet {
         let layout = pipeline
             .layout()
@@ -441,7 +442,7 @@ impl VulkanGraphicsPipeline {
                 [window_res_buffer, canvas_res_buffer].into_iter().enumerate().map(|(i, buf)| {
                     WriteDescriptorSet::buffer(
                         i as u32,
-                        buf
+                        buf.clone()
                     )
                 })
                 .collect::<Vec<_>>(),
@@ -527,10 +528,15 @@ impl VulkanGraphicsPipeline {
     }
 
     pub fn recreate_swapchain_and_resize_window(&mut self) {
+        self.flush_swapchain();
+
         let new_images = self.recreate_swapchain();
         let new_framebuffers = Self::create_framebuffers(&new_images, self.render_pass.clone());
 
         self.viewport.extent = self.window.inner_size().into();
+        for res in self.window_res_buffer.write().unwrap().iter_mut() {
+            res.update_from(self.window.inner_size());
+        }
 
         let new_pipeline = Self::create_graphics_pipeline(
             self.device.clone(),
@@ -718,8 +724,8 @@ impl VulkanGraphicsPipeline {
             &descriptor_set_allocator,
             pipeline.clone(),
             DS_INFREQUENT_UNIFORM_SET_NUM,
-            window_res_buffer,
-            canvas_res_buffer,
+            &window_res_buffer,
+            &canvas_res_buffer,
         );
         let descriptor_sets = AppliedDescriptorSets {
             ds_per_frame_storage,
@@ -754,6 +760,7 @@ impl VulkanGraphicsPipeline {
             canvas_buffer,
             fragment_shader,
             descriptor_sets,
+            window_res_buffer,
         }
     }
 }

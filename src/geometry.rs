@@ -100,6 +100,10 @@ impl Resolution {
     pub fn new(width: i32, height: i32) -> Self {
         Self { x: width, y: height }
     }
+    pub fn update_from(&mut self, value: PhysicalSize<u32>) {
+        self.x = value.width as i32;
+        self.y = value.height as i32;
+    }
 }
 impl From<PhysicalSize<u32>> for Resolution {
     fn from(value: PhysicalSize<u32>) -> Self {
