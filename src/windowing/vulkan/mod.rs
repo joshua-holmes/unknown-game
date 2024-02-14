@@ -228,13 +228,13 @@ impl VulkanGraphicsPipeline {
                 usage: BufferUsage::UNIFORM_BUFFER,
                 ..Default::default()
             }, AllocationCreateInfo {
-                memory_type_filter: MemoryTypeFilter::PREFER_HOST | MemoryTypeFilter::HOST_RANDOM_ACCESS,
+                memory_type_filter: MemoryTypeFilter::PREFER_DEVICE | MemoryTypeFilter::HOST_SEQUENTIAL_WRITE,
                 ..Default::default()
             }, 
             [
                 geometry::Resolution::from(window_resolution),
-                geometry::Resolution::from(canvas_resolution)
-            ]
+                geometry::Resolution::from(canvas_resolution),
+            ],
         )
         .unwrap()
     }
@@ -409,14 +409,14 @@ impl VulkanGraphicsPipeline {
     fn create_ds_infrequent_uniform(
         descriptor_set_allocator: &StandardDescriptorSetAllocator,
         descriptor_set_layout: Arc<DescriptorSetLayout>,
-        resolutions_buffer: &Subbuffer<[geometry::Resolution]>,
+        resolutions_buffer: Subbuffer<[geometry::Resolution]>,
     ) -> Arc<PersistentDescriptorSet> {
         PersistentDescriptorSet::new(
             descriptor_set_allocator,
             descriptor_set_layout.clone(),
             [WriteDescriptorSet::buffer(
                 0,
-                resolutions_buffer.clone()
+                resolutions_buffer
             )],
             []
         )
@@ -643,7 +643,7 @@ impl VulkanGraphicsPipeline {
         // resolutions_setup
         let resolutions_buffer = Self::create_resolutions_buffer(
             memory_allocator.clone(),
-            &window.inner_size(),
+            &PhysicalSize::new(INITIAL_WINDOW_RESOLUTION.width, INITIAL_WINDOW_RESOLUTION.height),
             &canvas.resolution()
         );
 
@@ -687,7 +687,7 @@ impl VulkanGraphicsPipeline {
         let ds_infrequent_uniform = Self::create_ds_infrequent_uniform(
             &descriptor_set_allocator,
             descriptor_set_layouts[DS_INFREQUENT_UNIFORM_SET_NUM].clone(),
-            &resolutions_buffer
+            resolutions_buffer
         );
         let descriptor_sets = AppliedDescriptorSets {
             ds_per_frame_storage,
