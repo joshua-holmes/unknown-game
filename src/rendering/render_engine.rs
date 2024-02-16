@@ -225,7 +225,7 @@ impl RenderEngine {
 
     fn create_resolution_buffer(
         memory_allocator: Arc<StandardMemoryAllocator>,
-        resolution: PhysicalSize<u32>,
+        resolution: Resolution,
     ) -> Subbuffer<[Resolution]> {
         Buffer::from_iter(
             memory_allocator, 
@@ -237,7 +237,7 @@ impl RenderEngine {
                 ..Default::default()
             }, 
             [
-                Resolution::from(resolution),
+                resolution,
             ],
         )
         .unwrap()
@@ -673,7 +673,7 @@ impl RenderEngine {
         // resolutions_setup
         let window_res_buffer = Self::create_resolution_buffer(
             memory_allocator.clone(),
-            window.inner_size(),
+            Resolution::from(window.inner_size()),
         );
         let canvas_res_buffer = Self::create_resolution_buffer(
             memory_allocator.clone(),

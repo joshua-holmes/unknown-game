@@ -1,6 +1,6 @@
 use winit::dpi::PhysicalSize;
 
-use crate::rendering::glsl_types::Dot;
+use crate::rendering::glsl_types::{Dot, Resolution};
 
 pub struct Canvas {
     pub grid: Vec<Vec<Dot>>,
@@ -23,10 +23,10 @@ impl Canvas {
         self.grid.iter().flatten().cloned().collect()
     }
 
-    pub fn resolution(&self) -> PhysicalSize<u32> {
-        PhysicalSize {
-            height: self.grid.len() as u32,
-            width: self.grid[0].len() as u32
+    pub fn resolution(&self) -> Resolution {
+        Resolution {
+            height: self.grid.len() as i32,
+            width: self.grid[0].len() as i32
         }
     }
 }
