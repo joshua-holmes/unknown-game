@@ -1,8 +1,8 @@
 use std::sync::Arc;
 
-use crate::geometry::{self, Canvas};
+use crate::{game::canvas::Canvas, geometry::{Triangle, Model}};
 use vulkano::{
-    buffer::{subbuffer::Subbuffer},
+    buffer::subbuffer::Subbuffer,
     buffer::{Buffer, BufferCreateInfo, BufferUsage},
     command_buffer::{
         allocator::{StandardCommandBufferAllocator, StandardCommandBufferAllocatorCreateInfo},
@@ -13,7 +13,7 @@ use vulkano::{
         physical::PhysicalDeviceType, Device, DeviceCreateInfo, DeviceExtensions, Queue, Features,
         QueueCreateInfo, QueueFlags,
     },
-    format::{ClearValue},
+    format::ClearValue,
     image::{view::ImageView, Image, ImageUsage},
     instance::{Instance, InstanceCreateInfo},
     memory::allocator::{
@@ -26,11 +26,10 @@ use vulkano::{
             input_assembly::InputAssemblyState,
             multisample::MultisampleState,
             rasterization::RasterizationState,
-            vertex_input::{Vertex, VertexDefinition},
             viewport::{Viewport, ViewportState},
             GraphicsPipelineCreateInfo,
         },
-        layout::{PipelineDescriptorSetLayoutCreateInfo},
+        layout::PipelineDescriptorSetLayoutCreateInfo,
         GraphicsPipeline, PipelineLayout, PipelineShaderStageCreateInfo, PipelineBindPoint, Pipeline,
     },
     render_pass::{Framebuffer, FramebufferCreateInfo, RenderPass, Subpass},
@@ -44,19 +43,19 @@ use vulkano::{
         future::{FenceSignalFuture, JoinFuture},
         GpuFuture,
     },
-    Validated, Version, VulkanError, VulkanLibrary, descriptor_set::{DescriptorSet, PersistentDescriptorSet, allocator::{StandardDescriptorSetAllocator, StandardDescriptorSetAllocatorCreateInfo}, layout::{DescriptorSetLayout}, WriteDescriptorSet},
+    Validated, Version, VulkanError, VulkanLibrary, descriptor_set::{DescriptorSet, PersistentDescriptorSet, allocator::{StandardDescriptorSetAllocator, StandardDescriptorSetAllocatorCreateInfo}, WriteDescriptorSet},
 };
-use winit::{dpi::{PhysicalSize}, event_loop::EventLoop, window::Window};
+use winit::{dpi::PhysicalSize, event_loop::EventLoop, window::Window};
 
+use self::glsl_types::{Dot, Vertex, Resolution};
+
+pub mod glsl_types;
 mod load_shaders;
 
 // set number of the available descriptor sets
 // these numbers must align with what is used in the shaders
 const DS_PER_FRAME_STORAGE_SET_NUM: u32 = 0;
 const DS_INFREQUENT_UNIFORM_SET_NUM: u32 = 1;
-
-// canvas resolution is the size of the game world in pixels
-const INITIAL_CANVAS_RESOLUTION: PhysicalSize<u32> = PhysicalSize::new(10, 4);
 
 pub type Fence = FenceSignalFuture<
     PresentFuture<CommandBufferExecFuture<JoinFuture<Box<dyn GpuFuture>, SwapchainAcquireFuture>>>,
@@ -88,11 +87,10 @@ impl AppliedDescriptorSets {
 }
 
 pub struct VulkanGraphicsPipeline {
-    pub canvas: Canvas,
-    canvas_buffer: Subbuffer<[geometry::Dot]>,
+    canvas_buffer: Subbuffer<[Dot]>,
     swapchain: Arc<Swapchain>,
     fences: Vec<Option<Arc<Fence>>>,
-    vertex_buffer: Subbuffer<[geometry::Vertex]>,
+    vertex_buffer: Subbuffer<[Vertex]>,
     queue: Arc<Queue>,
     device: Arc<Device>,
     window: Arc<Window>,
@@ -102,7 +100,7 @@ pub struct VulkanGraphicsPipeline {
     vertex_shader: Arc<ShaderModule>,
     fragment_shader: Arc<ShaderModule>,
     descriptor_sets: AppliedDescriptorSets,
-    window_res_buffer: Subbuffer<[geometry::Resolution]>,
+    window_res_buffer: Subbuffer<[Resolution]>,
 }
 impl VulkanGraphicsPipeline {
     fn init_vulkan_and_window(
@@ -230,7 +228,7 @@ impl VulkanGraphicsPipeline {
     fn create_resolution_buffer(
         memory_allocator: Arc<StandardMemoryAllocator>,
         resolution: PhysicalSize<u32>,
-    ) -> Subbuffer<[geometry::Resolution]> {
+    ) -> Subbuffer<[Resolution]> {
         Buffer::from_iter(
             memory_allocator, 
             BufferCreateInfo {
@@ -241,7 +239,7 @@ impl VulkanGraphicsPipeline {
                 ..Default::default()
             }, 
             [
-                geometry::Resolution::from(resolution),
+                Resolution::from(resolution),
             ],
         )
         .unwrap()
@@ -249,8 +247,8 @@ impl VulkanGraphicsPipeline {
 
     fn create_vertex_buffer(
         memory_allocator: Arc<StandardMemoryAllocator>,
-        data: Vec<geometry::Vertex>,
-    ) -> Subbuffer<[geometry::Vertex]> {
+        data: Vec<Vertex>,
+    ) -> Subbuffer<[Vertex]> {
         Buffer::from_iter(
             memory_allocator,
             BufferCreateInfo {
@@ -269,8 +267,8 @@ impl VulkanGraphicsPipeline {
 
     fn create_canvas_buffer(
         memory_allocator: Arc<StandardMemoryAllocator>,
-        data: Vec<geometry::Dot>,
-    ) -> Subbuffer<[geometry::Dot]> {
+        data: Vec<Dot>,
+    ) -> Subbuffer<[Dot]> {
         Buffer::from_iter(
             memory_allocator.clone(),
             BufferCreateInfo {
@@ -288,7 +286,7 @@ impl VulkanGraphicsPipeline {
         .unwrap()
     }
 
-    fn create_canvas_model() -> geometry::Model {
+    fn create_canvas_model() -> Model {
         // Creates a model the size of the screen
         // calculate 4 corners
         let norm_corner1 = [-1., -1.];
@@ -297,9 +295,9 @@ impl VulkanGraphicsPipeline {
         let norm_corner4 = [1., 1.];
 
         // generate triangles and model from corners
-        let triangle1 = geometry::Triangle::new(norm_corner1, norm_corner2, norm_corner3);
-        let triangle2 = geometry::Triangle::new(norm_corner2, norm_corner3, norm_corner4);
-        geometry::Model::new([triangle1, triangle2].into_iter())
+        let triangle1 = Triangle::new(norm_corner1, norm_corner2, norm_corner3);
+        let triangle2 = Triangle::new(norm_corner2, norm_corner3, norm_corner4);
+        Model::new([triangle1, triangle2].into_iter())
     }
 
     fn create_render_pass(device: Arc<Device>, swapchain: Arc<Swapchain>) -> Arc<RenderPass> {
@@ -351,7 +349,7 @@ impl VulkanGraphicsPipeline {
         let vs_entry_point = vertex_shader.entry_point("main").unwrap();
         let fs_entry_point = fragment_shader.entry_point("main").unwrap();
 
-        let vertex_input_state = geometry::Vertex::per_vertex()
+        let vertex_input_state = Vertex::per_vertex()
             .definition(&vs_entry_point.info().input_interface)
             .unwrap();
 
@@ -400,7 +398,7 @@ impl VulkanGraphicsPipeline {
         descriptor_set_allocator: &StandardDescriptorSetAllocator,
         pipeline: Arc<GraphicsPipeline>,
         set_number: u32,
-        canvas_buffer: &Subbuffer<[geometry::Dot]>,
+        canvas_buffer: &Subbuffer<[Dot]>,
     ) -> AppliedDescriptorSet {
         let layout = pipeline
             .layout()
@@ -427,8 +425,8 @@ impl VulkanGraphicsPipeline {
         descriptor_set_allocator: &StandardDescriptorSetAllocator,
         pipeline: Arc<GraphicsPipeline>,
         set_number: u32,
-        window_res_buffer: &Subbuffer<[geometry::Resolution]>,
-        canvas_res_buffer: &Subbuffer<[geometry::Resolution]>,
+        window_res_buffer: &Subbuffer<[Resolution]>,
+        canvas_res_buffer: &Subbuffer<[Resolution]>,
     ) -> AppliedDescriptorSet {
         let layout = pipeline
             .layout()
@@ -458,7 +456,7 @@ impl VulkanGraphicsPipeline {
         queue: Arc<Queue>,
         pipeline: Arc<GraphicsPipeline>,
         framebuffers: &Vec<Arc<Framebuffer>>,
-        vertex_buffer: &Subbuffer<[geometry::Vertex]>,
+        vertex_buffer: &Subbuffer<[Vertex]>,
         descriptor_sets: &AppliedDescriptorSets,
     ) -> Vec<Arc<PrimaryAutoCommandBuffer>> {
         let command_buffer_allocator = StandardCommandBufferAllocator::new(
@@ -558,7 +556,7 @@ impl VulkanGraphicsPipeline {
         self.command_buffers = new_command_buffers;
     }
 
-    pub fn display_next_frame(&mut self) {
+    pub fn display_next_frame(&mut self, canvas: &mut Canvas) {
         // if set to true any time during this function call, swapchain will
         // be recreated and this function will be called again
         let mut recreate_swapchain_after_presentation = false;
@@ -593,7 +591,7 @@ impl VulkanGraphicsPipeline {
         self.flush_swapchain();
 
         // write canvas data to buffer
-        for (dot, new_dot) in self.canvas_buffer.write().unwrap().iter_mut().zip(self.canvas.grid.iter().flatten()) {
+        for (dot, new_dot) in self.canvas_buffer.write().unwrap().iter_mut().zip(canvas.grid.iter().flatten()) {
             if dot.dot_value != new_dot.dot_value {
                 dot.dot_value = new_dot.dot_value;
             }
@@ -638,11 +636,11 @@ impl VulkanGraphicsPipeline {
 
         if recreate_swapchain_after_presentation {
             self.recreate_swapchain();
-            self.display_next_frame();
+            self.display_next_frame(canvas);
         }
     }
 
-    pub fn new(event_loop: &EventLoop<()>, window: Arc<Window>) -> Self {
+    pub fn new(event_loop: &EventLoop<()>, window: Arc<Window>, canvas: &Canvas) -> Self {
         // init vulkan and window
         let (vk_instance, vk_surface) = Self::init_vulkan_and_window(event_loop, window.clone());
 
@@ -669,7 +667,6 @@ impl VulkanGraphicsPipeline {
             Self::create_vertex_buffer(memory_allocator.clone(), canvas_model.into_vec_of_verticies());
 
         // canvas setup
-        let canvas = Canvas::new(INITIAL_CANVAS_RESOLUTION);
         let canvas_buffer = Self::create_canvas_buffer(
             memory_allocator.clone(),
             canvas.to_vec_of_dots(),
@@ -756,7 +753,6 @@ impl VulkanGraphicsPipeline {
             command_buffers,
             vertex_shader,
             vertex_buffer,
-            canvas,
             canvas_buffer,
             fragment_shader,
             descriptor_sets,

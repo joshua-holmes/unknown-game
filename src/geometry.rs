@@ -1,48 +1,4 @@
-use vulkano::{buffer::BufferContents, pipeline::graphics::vertex_input::Vertex as VertexMacro};
-use winit::dpi::PhysicalSize;
-
-#[derive(BufferContents, VertexMacro, Clone, Debug)]
-#[repr(C)]
-pub struct Dot {
-    #[format(R32_UINT)]
-    pub dot_value: u32,
-}
-
-pub struct Canvas {
-    pub grid: Vec<Vec<Dot>>,
-}
-#[allow(dead_code)]
-impl Canvas {
-    pub fn new(resolution: PhysicalSize<u32>) -> Self {
-        let grid = (0..resolution.height).map(|j| {
-            (0..resolution.width).map(|i| {
-                Dot { dot_value: if (i + j % 2) % 2 == 0 { 9 } else { 0 } }
-                // Dot { dot_value: 9 }
-            }).collect()
-        }).collect();
-        Self {
-            grid,
-        }
-    }
-
-    pub fn to_vec_of_dots(&self) -> Vec<Dot> {
-        self.grid.iter().flatten().cloned().collect()
-    }
-
-    pub fn resolution(&self) -> PhysicalSize<u32> {
-        PhysicalSize {
-            height: self.grid.len() as u32,
-            width: self.grid[0].len() as u32
-        }
-    }
-}
-
-#[derive(BufferContents, VertexMacro, Debug)]
-#[repr(C)]
-pub struct Vertex {
-    #[format(R32G32_SFLOAT)]
-    pub position: [f32; 2],
-}
+use crate::rendering::glsl_types::Vertex;
 
 #[derive(Debug)]
 pub struct Triangle(Vertex, Vertex, Vertex);
@@ -87,32 +43,6 @@ impl Model {
         // TODO: count number of verticies in triangle dynamically instead of hard coded. probably will involve a macro
         let verticies_per_triangle = 3;
         self.0.len() as u32 * verticies_per_triangle
-    }
-}
-
-#[derive(BufferContents, Clone, Debug)]
-#[repr(C)]
-pub struct Resolution {
-    pub x: i32,
-    pub y: i32,
-}
-impl Resolution {
-    pub fn new(width: i32, height: i32) -> Self {
-        Self { x: width, y: height }
-    }
-    pub fn update_from(&mut self, value: PhysicalSize<u32>) {
-        self.x = value.width as i32;
-        self.y = value.height as i32;
-    }
-}
-impl From<PhysicalSize<u32>> for Resolution {
-    fn from(value: PhysicalSize<u32>) -> Self {
-        Self { x: value.width as i32, y: value.height as i32 }
-    }
-}
-impl From<&PhysicalSize<u32>> for Resolution {
-    fn from(value: &PhysicalSize<u32>) -> Self {
-        Self { x: value.width as i32, y: value.height as i32 }
     }
 }
 
