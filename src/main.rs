@@ -12,5 +12,5 @@ fn main() {
         &game_state.canvas
     );
 
-    windowing::run_game_loop(game_window.event_loop, render_engine, game_state);
+    windowing::run_game_loop(game_window, render_engine, game_state);
 }

@@ -1,8 +1,10 @@
-use winit::{event::{Event, WindowEvent}, event_loop::ControlFlow};
+use std::sync::Arc;
+
+use winit::{event::{Event, WindowEvent}, event_loop::ControlFlow, window::Window};
 
 use crate::{rendering::render_engine::RenderEngine, game::state::GameState};
 
-pub fn handle_event(event: Event<()>, control_flow: &mut ControlFlow, render_engine: &mut RenderEngine, game_state: &mut GameState) {
+pub fn handle_event(event: Event<()>, control_flow: &mut ControlFlow, window: Arc<Window>, render_engine: &mut RenderEngine, game_state: &mut GameState) {
     match event {
         Event::WindowEvent {
             event: WindowEvent::CloseRequested,
@@ -15,10 +17,10 @@ pub fn handle_event(event: Event<()>, control_flow: &mut ControlFlow, render_eng
             event: WindowEvent::Resized(_),
             ..
         } => {
-            render_engine.recreate_swapchain_and_resize_window();
+            render_engine.recreate_swapchain_and_resize_window(window.clone());
         }
         Event::MainEventsCleared => {
-            render_engine.display_next_frame(&mut game_state.canvas);
+            render_engine.display_next_frame(&mut game_state.canvas, window.clone());
         }
         _ => (),
     }

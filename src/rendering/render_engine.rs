@@ -92,7 +92,6 @@ pub struct RenderEngine {
     vertex_buffer: Subbuffer<[Vertex]>,
     queue: Arc<Queue>,
     device: Arc<Device>,
-    window: Arc<Window>,
     viewport: Viewport,
     render_pass: Arc<RenderPass>,
     command_buffers: Vec<Arc<PrimaryAutoCommandBuffer>>,
@@ -512,11 +511,11 @@ impl RenderEngine {
         }
     }
 
-    pub fn recreate_swapchain(&mut self) -> Vec<Arc<Image>> {
+    pub fn recreate_swapchain(&mut self, window: Arc<Window>) -> Vec<Arc<Image>> {
         let (new_swapchain, new_images) = self
             .swapchain
             .recreate(SwapchainCreateInfo {
-                image_extent: self.window.inner_size().into(),
+                image_extent: window.inner_size().into(),
                 ..self.swapchain.create_info()
             })
             .unwrap();
@@ -524,15 +523,15 @@ impl RenderEngine {
         new_images
     }
 
-    pub fn recreate_swapchain_and_resize_window(&mut self) {
+    pub fn recreate_swapchain_and_resize_window(&mut self, window: Arc<Window>) {
         self.flush_swapchain();
 
-        let new_images = self.recreate_swapchain();
+        let new_images = self.recreate_swapchain(window.clone());
         let new_framebuffers = Self::create_framebuffers(&new_images, self.render_pass.clone());
 
-        self.viewport.extent = self.window.inner_size().into();
+        self.viewport.extent = window.inner_size().into();
         for res in self.window_res_buffer.write().unwrap().iter_mut() {
-            res.update_from(self.window.inner_size());
+            res.update_from(window.inner_size());
         }
 
         let new_pipeline = Self::create_graphics_pipeline(
@@ -555,7 +554,7 @@ impl RenderEngine {
         self.command_buffers = new_command_buffers;
     }
 
-    pub fn display_next_frame(&mut self, canvas: &mut Canvas) {
+    pub fn display_next_frame(&mut self, canvas: &mut Canvas, window: Arc<Window>) {
         // if set to true any time during this function call, swapchain will
         // be recreated and this function will be called again
         let mut recreate_swapchain_after_presentation = false;
@@ -634,8 +633,8 @@ impl RenderEngine {
         };
 
         if recreate_swapchain_after_presentation {
-            self.recreate_swapchain();
-            self.display_next_frame(canvas);
+            self.recreate_swapchain(window.clone());
+            self.display_next_frame(canvas, window);
         }
     }
 
@@ -746,7 +745,6 @@ impl RenderEngine {
             fences,
             queue,
             swapchain,
-            window,
             viewport,
             render_pass,
             command_buffers,
