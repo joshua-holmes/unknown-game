@@ -1,6 +1,6 @@
 use winit::{event::{Event, WindowEvent}, event_loop::ControlFlow};
 
-use crate::{rendering::RenderEngine, game::state::GameState};
+use crate::{rendering::render_engine::RenderEngine, game::state::GameState};
 
 pub fn handle_event(event: Event<()>, control_flow: &mut ControlFlow, render_engine: &mut RenderEngine, game_state: &mut GameState) {
     match event {
