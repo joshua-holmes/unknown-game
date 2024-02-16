@@ -87,7 +87,7 @@ impl AppliedDescriptorSets {
     }
 }
 
-pub struct VulkanGraphicsPipeline {
+pub struct RenderEngine {
     canvas_buffer: Subbuffer<[Dot]>,
     swapchain: Arc<Swapchain>,
     fences: Vec<Option<Arc<Fence>>>,
@@ -103,7 +103,7 @@ pub struct VulkanGraphicsPipeline {
     descriptor_sets: AppliedDescriptorSets,
     window_res_buffer: Subbuffer<[Resolution]>,
 }
-impl VulkanGraphicsPipeline {
+impl RenderEngine {
     fn init_vulkan_and_window(
         event_loop: &EventLoop<()>,
         window: Arc<Window>,

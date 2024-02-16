@@ -6,7 +6,7 @@ mod event_handler;
 
 use crate::game::state::GameState;
 
-use super::rendering::VulkanGraphicsPipeline;
+use super::rendering::RenderEngine;
 
 enum WindowingError {
     OsError(OsError),
@@ -24,10 +24,10 @@ pub fn init_window(mut game_state: GameState) {
         Arc::new(window)
     };
 
-    let mut pipeline = VulkanGraphicsPipeline::new(&event_loop, window.clone(), &game_state.canvas);
+    let mut render_engine = RenderEngine::new(&event_loop, window.clone(), &game_state.canvas);
 
     event_loop.run(move |event, _, control_flow| {
         control_flow.set_poll();
-        event_handler::handle_event(event, control_flow, &mut pipeline, &mut game_state); // TODO: handle error appropriately
+        event_handler::handle_event(event, control_flow, &mut render_engine, &mut game_state); // TODO: handle error appropriately
     });
 }
