@@ -28,6 +28,7 @@ use vulkano::{
             rasterization::RasterizationState,
             viewport::{Viewport, ViewportState},
             GraphicsPipelineCreateInfo,
+            vertex_input::{Vertex as VertexMacro, VertexDefinition}
         },
         layout::PipelineDescriptorSetLayoutCreateInfo,
         GraphicsPipeline, PipelineLayout, PipelineShaderStageCreateInfo, PipelineBindPoint, Pipeline,

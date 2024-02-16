@@ -17,7 +17,7 @@ impl From<OsError> for WindowingError {
     }
 }
 
-pub fn init_window(game_state: GameState) {
+pub fn init_window(mut game_state: GameState) {
     let event_loop = EventLoop::new();
     let window = {
         let window = Window::new(&event_loop).unwrap();
