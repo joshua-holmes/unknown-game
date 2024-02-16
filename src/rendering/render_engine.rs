@@ -511,11 +511,11 @@ impl RenderEngine {
         }
     }
 
-    pub fn recreate_swapchain(&mut self, window: Arc<Window>) -> Vec<Arc<Image>> {
+    pub fn recreate_swapchain(&mut self, window_size: PhysicalSize<u32>) -> Vec<Arc<Image>> {
         let (new_swapchain, new_images) = self
             .swapchain
             .recreate(SwapchainCreateInfo {
-                image_extent: window.inner_size().into(),
+                image_extent: window_size.into(),
                 ..self.swapchain.create_info()
             })
             .unwrap();
@@ -526,7 +526,7 @@ impl RenderEngine {
     pub fn recreate_swapchain_and_resize_window(&mut self, window: Arc<Window>) {
         self.flush_swapchain();
 
-        let new_images = self.recreate_swapchain(window.clone());
+        let new_images = self.recreate_swapchain(window.inner_size());
         let new_framebuffers = Self::create_framebuffers(&new_images, self.render_pass.clone());
 
         self.viewport.extent = window.inner_size().into();
@@ -633,7 +633,7 @@ impl RenderEngine {
         };
 
         if recreate_swapchain_after_presentation {
-            self.recreate_swapchain(window.clone());
+            self.recreate_swapchain(window.inner_size());
             self.display_next_frame(canvas, window);
         }
     }
