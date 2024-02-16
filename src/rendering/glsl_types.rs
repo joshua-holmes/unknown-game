@@ -18,25 +18,26 @@ pub struct Vertex {
 #[derive(BufferContents, Clone, Debug)]
 #[repr(C)]
 pub struct Resolution {
-    pub x: i32,
-    pub y: i32,
+    pub width: i32,
+    pub height: i32,
 }
+#[allow(dead_code)]
 impl Resolution {
     pub fn new(width: i32, height: i32) -> Self {
-        Self { x: width, y: height }
+        Self { width, height }
     }
     pub fn update_from(&mut self, value: PhysicalSize<u32>) {
-        self.x = value.width as i32;
-        self.y = value.height as i32;
+        self.width = value.width as i32;
+        self.height = value.height as i32;
     }
 }
 impl From<PhysicalSize<u32>> for Resolution {
     fn from(value: PhysicalSize<u32>) -> Self {
-        Self { x: value.width as i32, y: value.height as i32 }
+        Self { width: value.width as i32, height: value.height as i32 }
     }
 }
 impl From<&PhysicalSize<u32>> for Resolution {
     fn from(value: &PhysicalSize<u32>) -> Self {
-        Self { x: value.width as i32, y: value.height as i32 }
+        Self { width: value.width as i32, height: value.height as i32 }
     }
 }

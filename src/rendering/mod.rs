@@ -44,7 +44,7 @@ use vulkano::{
         future::{FenceSignalFuture, JoinFuture},
         GpuFuture,
     },
-    Validated, Version, VulkanError, VulkanLibrary, descriptor_set::{DescriptorSet, PersistentDescriptorSet, allocator::{StandardDescriptorSetAllocator, StandardDescriptorSetAllocatorCreateInfo}, WriteDescriptorSet},
+    Validated, Version, VulkanError, VulkanLibrary, descriptor_set::{PersistentDescriptorSet, allocator::{StandardDescriptorSetAllocator, StandardDescriptorSetAllocatorCreateInfo}, WriteDescriptorSet},
 };
 use winit::{dpi::PhysicalSize, event_loop::EventLoop, window::Window};
 

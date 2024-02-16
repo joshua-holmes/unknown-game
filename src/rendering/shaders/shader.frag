@@ -5,8 +5,8 @@ struct Dot {
     uint dot_value;
 };
 struct Resolution {
-    int x;
-    int y;
+    int width;
+    int height;
 };
 
 layout(location = 0) out vec4 f_color;
@@ -24,8 +24,8 @@ layout(std140, set = 1, binding = 1) uniform CanvasRes {
 
 
 void main() {
-    ivec2 window_res = ivec2(window.res.x, window.res.y);
-    ivec2 canvas_res = ivec2(canvas.res.x, canvas.res.y);
+    ivec2 window_res = ivec2(window.res.width, window.res.height);
+    ivec2 canvas_res = ivec2(canvas.res.width, canvas.res.height);
 
     // aspect ratios
     float window_ar = float(window_res.x) / float(window_res.y);
