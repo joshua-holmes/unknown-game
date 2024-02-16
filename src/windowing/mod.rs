@@ -9,7 +9,7 @@ use crate::rendering::render_engine::RenderEngine;
 
 use self::game_window::GameWindow;
 
-use super::game::state::GameState;
+use super::game::state::Game;
 
 pub fn init() -> GameWindow {
     let event_loop = EventLoop::new();
@@ -21,9 +21,9 @@ pub fn init() -> GameWindow {
     }
 }
 
-pub fn run_game_loop(game_window: GameWindow, mut render_engine: RenderEngine, mut game_state: GameState) {
+pub fn run_game_loop(game_window: GameWindow, mut render_engine: RenderEngine, mut game: Game) {
     game_window.event_loop.run(move |event, _, control_flow| {
         control_flow.set_poll();
-        event_handler::handle_event(event, control_flow, game_window.window.clone(), &mut render_engine, &mut game_state); // TODO: handle error appropriately
+        event_handler::handle_event(event, control_flow, game_window.window.clone(), &mut render_engine, &mut game); // TODO: handle error appropriately
     });
 }
