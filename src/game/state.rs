@@ -1,5 +1,5 @@
 use super::canvas::Canvas;
 
-pub struct Game {
+pub struct GameState {
     pub canvas: Canvas,
 }
