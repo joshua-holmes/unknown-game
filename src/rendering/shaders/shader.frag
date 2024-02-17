@@ -2,6 +2,8 @@
 
 // Dot with dot_value property which represents elemental type in the game
 struct Dot {
+    // TODO: figure out hacky way to have data read here in bytes (8-bit)
+    // instead of uint (32-bit)
     uint dot_value;
 };
 struct Resolution {
