@@ -5,7 +5,7 @@ pub mod canvas;
 pub mod geometry;
 
 // canvas resolution is the size of the game world in pixels
-const INITIAL_CANVAS_RESOLUTION: PhysicalSize<u32> = PhysicalSize::new(10, 4);
+const INITIAL_CANVAS_RESOLUTION: PhysicalSize<u32> = PhysicalSize::new(960, 540);
 
 pub fn init() -> state::GameState {
     let canvas = canvas::Canvas::new(INITIAL_CANVAS_RESOLUTION);
