@@ -48,7 +48,7 @@ void main() {
     }
 
     vec2 adjusted = floor(gl_FragCoord.xy) - vec2(offset);
-    ivec2 canvas_coord = ivec2(round(adjusted * multi * vec2(canvas_res) / vec2(window_res)));
+    ivec2 canvas_coord = ivec2(floor(adjusted * multi * vec2(canvas_res) / vec2(window_res)));
 
     if (canvas_coord.x < 0 || canvas_coord.x >= canvas_res.x) {
         f_color = vec4(0);
