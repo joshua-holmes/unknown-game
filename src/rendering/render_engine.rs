@@ -590,9 +590,7 @@ impl RenderEngine {
 
         // write canvas data to buffer
         for (dot, new_dot) in self.canvas_buffer.write().unwrap().iter_mut().zip(canvas.grid.iter().flatten()) {
-            if dot.dot_value != new_dot.dot_value {
-                dot.dot_value = new_dot.dot_value;
-            }
+            dot.dot_value = new_dot.dot_value;
         }
 
         // get time that previous image finishes displaying (or now if there is no previous image)
