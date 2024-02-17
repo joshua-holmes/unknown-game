@@ -32,7 +32,7 @@ void main() {
     float canvas_ar = float(canvas_res.x) / float(canvas_res.y);
 
     ivec2 offset = ivec2(0, 0);
-    vec2 multi = ivec2(1, 1);
+    vec2 multi = vec2(1., 1.);
     if (window_ar > canvas_ar) {
         float corrected_window_x = canvas_ar * float(window_res.y);
         offset.x = int(round(
@@ -48,7 +48,7 @@ void main() {
     }
 
     vec2 adjusted = floor(gl_FragCoord.xy) - vec2(offset);
-    ivec2 canvas_coord = ivec2(floor(adjusted * multi * vec2(canvas_res) / vec2(window_res)));
+    ivec2 canvas_coord = ivec2(round(adjusted * multi * vec2(canvas_res) / vec2(window_res)));
 
     if (canvas_coord.x < 0 || canvas_coord.x >= canvas_res.x) {
         f_color = vec4(0);
