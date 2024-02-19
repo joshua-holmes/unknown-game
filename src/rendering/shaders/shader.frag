@@ -25,6 +25,17 @@ layout(std140, set = 1, binding = 1) uniform CanvasRes {
 } canvas;
 
 
+vec3 get_color(uint dot_value) {
+    switch (dot_value) {
+    case 1: // sand
+        return vec3(0.9490196078431372, 0.9098039215686274, 0.42745098039215684);
+    case 2: // dirt
+        return vec3(0.7764705882352941, 0.6313725490196078, 0.3568627450980392);
+    default:
+        return vec3(0);
+    }
+}
+
 void main() {
     ivec2 window_res = ivec2(window.res.width, window.res.height);
     ivec2 canvas_res = ivec2(canvas.res.width, canvas.res.height);
@@ -63,12 +74,7 @@ void main() {
     int flat_coord = canvas_coord.x + (canvas_res.x * canvas_coord.y);
     uint dot_value = dot.dots[flat_coord].dot_value;
 
-    vec3 rgb = vec3(1);
-    if (dot_value == 9) {
-        rgb = vec3(.9, .6, .1); // red
-    } else if (dot_value == 12) {
-        rgb = vec3(.1, .6, .9); // blue
-    }
+    vec3 rgb = get_color(dot_value);
 
     f_color = vec4(rgb, 1);
 }
