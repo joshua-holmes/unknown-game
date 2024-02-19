@@ -54,7 +54,7 @@ def hex_to_floats(hex_digits: str) -> tuple[float, float, float]:
 def main():
     hex_value = parse_args(sys.argv)
     r, g, b = hex_to_floats(hex_value)
-    print(f"vec({r}, {g}, {b});")
+    print(f"vec3({r}, {g}, {b});")
 
 
 if __name__ == "__main__":
