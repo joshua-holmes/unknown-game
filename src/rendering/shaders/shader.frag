@@ -21,14 +21,22 @@ layout(std140, set = 1, binding = 1) uniform CanvasRes {
 } canvas;
 
 
+vec3 hex_to_vec3(uint hex) {
+    float r = float((hex & 0xff0000) >> 16) / 255.;
+    float g = float((hex & 0x00ff00) >> 8) / 255.;
+    float b = float(hex & 0x0000ff) / 255.;
+    return vec3(r, g, b);
+}
+
+
 vec3 get_color(uint material) {
     switch (material) {
     case 1: // sand
-        return vec3(0.9490196078431372, 0.9098039215686274, 0.42745098039215684);
+        return hex_to_vec3(0xd7c9aa);
     case 2: // dirt
-        return vec3(0.7764705882352941, 0.6313725490196078, 0.3568627450980392);
+        return hex_to_vec3(0x564138);
     default:
-        return vec3(0);
+        return hex_to_vec3(0x000000);
     }
 }
 
