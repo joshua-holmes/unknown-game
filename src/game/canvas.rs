@@ -10,7 +10,7 @@ impl Canvas {
     pub fn new(resolution: PhysicalSize<u32>) -> Self {
         let grid = (0..resolution.height).map(|_| {
             (0..resolution.width).map(|_| {
-                Dot { dot_value: 0 }
+                Dot::new(2)
             }).collect()
         }).collect();
         Self {
@@ -18,8 +18,8 @@ impl Canvas {
         }
     }
 
-    pub fn to_vec_of_dots(&self) -> Vec<Dot> {
-        self.grid.iter().flatten().cloned().collect()
+    pub fn iter_materials<'a>(&'a self) -> impl Iterator<Item = u32> + 'a {
+        self.grid.iter().flatten().map(|d| d.material)
     }
 
     pub fn resolution(&self) -> Resolution {

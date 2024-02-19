@@ -5,7 +5,14 @@ use winit::dpi::PhysicalSize;
 #[derive(BufferContents, Clone, Debug)]
 #[repr(C)]
 pub struct Dot {
-    pub dot_value: u32,
+    pub material: u32,
+}
+impl Dot {
+    pub fn new(material: u32) -> Self {
+        Self {
+            material,
+        }
+    }
 }
 
 #[derive(BufferContents, VertexMacro, Debug)]

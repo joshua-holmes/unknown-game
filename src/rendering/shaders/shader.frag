@@ -1,11 +1,5 @@
 #version 460
 
-// Dot with dot_value property which represents elemental type in the game
-struct Dot {
-    // TODO: figure out hacky way to have data read here in bytes (8-bit)
-    // instead of uint (32-bit)
-    uint dot_value;
-};
 struct Resolution {
     int width;
     int height;
@@ -13,9 +7,11 @@ struct Resolution {
 
 layout(location = 0) out vec4 f_color;
 
-layout(set = 0, binding = 0) buffer DotBuffer {
-    Dot dots[];
-} dot;
+// TODO: figure out hacky way to have data read here in bytes (8-bit)
+// instead of uint (32-bit)
+layout(set = 0, binding = 0) buffer MaterialBuffer {
+    uint materials[];
+};
 
 layout(std140, set = 1, binding = 0) uniform WindowRes {
     Resolution res;
@@ -25,8 +21,8 @@ layout(std140, set = 1, binding = 1) uniform CanvasRes {
 } canvas;
 
 
-vec3 get_color(uint dot_value) {
-    switch (dot_value) {
+vec3 get_color(uint material) {
+    switch (material) {
     case 1: // sand
         return vec3(0.9490196078431372, 0.9098039215686274, 0.42745098039215684);
     case 2: // dirt
@@ -72,9 +68,9 @@ void main() {
     }
 
     int flat_coord = canvas_coord.x + (canvas_res.x * canvas_coord.y);
-    uint dot_value = dot.dots[flat_coord].dot_value;
+    uint material = materials[flat_coord];
 
-    vec3 rgb = get_color(dot_value);
+    vec3 rgb = get_color(material);
 
     f_color = vec4(rgb, 1);
 }

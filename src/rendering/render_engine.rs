@@ -48,7 +48,7 @@ use vulkano::{
 };
 use winit::{dpi::PhysicalSize, event_loop::EventLoop, window::Window};
 
-use super::glsl_types::{Dot, Vertex, Resolution};
+use super::glsl_types::{Vertex, Resolution};
 use super::load_shaders;
 
 // set number of the available descriptor sets
@@ -86,7 +86,7 @@ impl AppliedDescriptorSets {
 }
 
 pub struct RenderEngine {
-    canvas_buffer: Subbuffer<[Dot]>,
+    canvas_buffer: Subbuffer<[u32]>,
     swapchain: Arc<Swapchain>,
     fences: Vec<Option<Arc<Fence>>>,
     vertex_buffer: Subbuffer<[Vertex]>,
@@ -265,8 +265,8 @@ impl RenderEngine {
 
     fn create_canvas_buffer(
         memory_allocator: Arc<StandardMemoryAllocator>,
-        data: Vec<Dot>,
-    ) -> Subbuffer<[Dot]> {
+        data: Vec<u32>,
+    ) -> Subbuffer<[u32]> {
         Buffer::from_iter(
             memory_allocator.clone(),
             BufferCreateInfo {
@@ -396,7 +396,7 @@ impl RenderEngine {
         descriptor_set_allocator: &StandardDescriptorSetAllocator,
         pipeline: Arc<GraphicsPipeline>,
         set_number: u32,
-        canvas_buffer: &Subbuffer<[Dot]>,
+        canvas_buffer: &Subbuffer<[u32]>,
     ) -> AppliedDescriptorSet {
         let layout = pipeline
             .layout()
@@ -589,8 +589,8 @@ impl RenderEngine {
         self.flush_swapchain();
 
         // write canvas data to buffer
-        for (dot, new_dot) in self.canvas_buffer.write().unwrap().iter_mut().zip(canvas.grid.iter().flatten()) {
-            dot.dot_value = new_dot.dot_value;
+        for (mat, new_mat) in self.canvas_buffer.write().unwrap().iter_mut().zip(canvas.iter_materials()) {
+            *mat = new_mat;
         }
 
         // get time that previous image finishes displaying (or now if there is no previous image)
@@ -665,7 +665,7 @@ impl RenderEngine {
         // canvas setup
         let canvas_buffer = Self::create_canvas_buffer(
             memory_allocator.clone(),
-            canvas.to_vec_of_dots(),
+            canvas.iter_materials().collect(),
         );
 
         // resolutions_setup
