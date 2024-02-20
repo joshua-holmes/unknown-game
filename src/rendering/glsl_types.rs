@@ -1,20 +1,6 @@
 use vulkano::{pipeline::graphics::vertex_input::Vertex as VertexMacro, buffer::BufferContents};
 use winit::dpi::PhysicalSize;
 
-
-#[derive(BufferContents, Clone, Debug)]
-#[repr(C)]
-pub struct Dot {
-    pub material: u8,
-}
-impl Dot {
-    pub fn new(material: u8) -> Self {
-        Self {
-            material,
-        }
-    }
-}
-
 #[derive(BufferContents, VertexMacro, Debug)]
 #[repr(C)]
 pub struct Vertex {

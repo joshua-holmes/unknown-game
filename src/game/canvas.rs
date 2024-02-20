@@ -1,6 +1,8 @@
 use winit::dpi::PhysicalSize;
 
-use crate::rendering::glsl_types::{Dot, Resolution};
+use crate::rendering::glsl_types::Resolution;
+
+use super::dot::Dot;
 
 pub struct Canvas {
     pub grid: Vec<Vec<Dot>>,
