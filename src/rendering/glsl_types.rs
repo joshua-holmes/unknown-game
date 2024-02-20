@@ -5,10 +5,10 @@ use winit::dpi::PhysicalSize;
 #[derive(BufferContents, Clone, Debug)]
 #[repr(C)]
 pub struct Dot {
-    pub material: u32,
+    pub material: u8,
 }
 impl Dot {
-    pub fn new(material: u32) -> Self {
+    pub fn new(material: u8) -> Self {
         Self {
             material,
         }

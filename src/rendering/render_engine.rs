@@ -86,7 +86,7 @@ impl AppliedDescriptorSets {
 }
 
 pub struct RenderEngine {
-    canvas_buffer: Subbuffer<[u32]>,
+    canvas_buffer: Subbuffer<[u8]>,
     swapchain: Arc<Swapchain>,
     fences: Vec<Option<Arc<Fence>>>,
     vertex_buffer: Subbuffer<[Vertex]>,
@@ -265,8 +265,8 @@ impl RenderEngine {
 
     fn create_canvas_buffer(
         memory_allocator: Arc<StandardMemoryAllocator>,
-        data: Vec<u32>,
-    ) -> Subbuffer<[u32]> {
+        data: Vec<u8>,
+    ) -> Subbuffer<[u8]> {
         Buffer::from_iter(
             memory_allocator.clone(),
             BufferCreateInfo {
@@ -396,7 +396,7 @@ impl RenderEngine {
         descriptor_set_allocator: &StandardDescriptorSetAllocator,
         pipeline: Arc<GraphicsPipeline>,
         set_number: u32,
-        canvas_buffer: &Subbuffer<[u32]>,
+        canvas_buffer: &Subbuffer<[u8]>,
     ) -> AppliedDescriptorSet {
         let layout = pipeline
             .layout()

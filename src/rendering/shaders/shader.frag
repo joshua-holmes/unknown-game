@@ -7,10 +7,8 @@ struct Resolution {
 
 layout(location = 0) out vec4 f_color;
 
-// TODO: figure out hacky way to have data read here in bytes (8-bit)
-// instead of uint (32-bit)
 layout(set = 0, binding = 0) buffer MaterialBuffer {
-    uint materials[];
+    highp uint materials[];
 };
 
 layout(std140, set = 1, binding = 0) uniform WindowRes {
@@ -39,6 +37,17 @@ vec3 get_color(uint material) {
         return hex_to_vec3(0x000000);
     }
 }
+
+
+uint get_material(uint flat_coord) {
+    uint material_bytes = materials[flat_coord / 4];
+    uint byte_index = uint(mod(flat_coord, 4));
+    uint small_num = byte_index * 8;
+    uint large_num = small_num + 8;
+    uint byte_we_care_about = uint(pow(2, large_num) - pow(2, small_num));
+    return (material_bytes & byte_we_care_about) >> small_num;
+}
+
 
 void main() {
     ivec2 window_res = ivec2(window.res.width, window.res.height);
@@ -76,7 +85,7 @@ void main() {
     }
 
     int flat_coord = canvas_coord.x + (canvas_res.x * canvas_coord.y);
-    uint material = materials[flat_coord];
+    uint material = get_material(flat_coord);
 
     vec3 rgb = get_color(material);
 

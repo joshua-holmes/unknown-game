@@ -18,7 +18,7 @@ impl Canvas {
         }
     }
 
-    pub fn iter_materials<'a>(&'a self) -> impl Iterator<Item = u32> + 'a {
+    pub fn iter_materials<'a>(&'a self) -> impl Iterator<Item = u8> + 'a {
         self.grid.iter().flatten().map(|d| d.material)
     }
 
