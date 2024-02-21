@@ -1,3 +1,5 @@
+use std::ops::{Add, AddAssign, Mul};
+
 use crate::rendering::glsl_types::Vertex;
 
 #[derive(Debug)]
@@ -46,3 +48,68 @@ impl Model {
     }
 }
 
+#[derive(Clone, Copy)]
+pub struct Vec2<T> {
+    pub x: T,
+    pub y: T,
+}
+impl<T> Mul<T> for Vec2<T>
+    where T: Mul + Copy
+{
+    type Output = Vec2<T::Output>;
+    fn mul(self, rhs: T) -> Self::Output {
+        Self::Output {
+            x: self.x * rhs,
+            y: self.y * rhs,
+        }
+    }
+}
+impl<T> Mul<T> for &Vec2<T>
+    where T: Mul + Copy
+{
+    type Output = Vec2<T::Output>;
+    fn mul(self, rhs: T) -> Self::Output {
+        Self::Output {
+            x: self.x * rhs,
+            y: self.y * rhs,
+        }
+    }
+}
+impl<T> Add for Vec2<T>
+    where T: Add
+{
+    type Output = Vec2<T::Output>;
+    fn add(self, rhs: Self) -> Self::Output {
+        Self::Output {
+            x: self.x + rhs.x,
+            y: self.y + rhs.y,
+        }
+    }
+}
+impl<T> AddAssign for Vec2<T>
+    where T: AddAssign
+{
+    fn add_assign(&mut self, rhs: Self) {
+        self.x += rhs.x;
+        self.y += rhs.y;
+    }
+}
+impl<'a, T> Add for &'a Vec2<T>
+    where T: Add + Copy
+{
+    type Output = Vec2<T::Output>;
+    fn add(self, rhs: Self) -> Self::Output {
+        Self::Output {
+            x: self.x + rhs.x,
+            y: self.y + rhs.y,
+        }
+    }
+}
+impl<T> AddAssign for &mut Vec2<T>
+    where T: AddAssign + Copy
+{
+    fn add_assign(&mut self, rhs: Self) {
+        self.x += rhs.x;
+        self.y += rhs.y;
+    }
+}
