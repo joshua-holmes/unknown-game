@@ -20,6 +20,7 @@ pub fn handle_event(event: Event<()>, control_flow: &mut ControlFlow, window: Ar
             render_engine.recreate_swapchain_and_resize_window(window.clone());
         }
         Event::MainEventsCleared => {
+            game_state.set_next_frame();
             render_engine.display_next_frame(&mut game_state.canvas, window.clone());
         }
         _ => (),

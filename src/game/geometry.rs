@@ -48,10 +48,29 @@ impl Model {
     }
 }
 
-#[derive(Clone, Copy)]
+#[derive(Clone, Copy, Debug)]
 pub struct Vec2<T> {
     pub x: T,
     pub y: T,
+}
+impl<T> Vec2<T> {
+    pub fn new(x: T, y: T) -> Self {
+        Self { x, y }
+    }
+    pub fn clamp(&self, min: Option<Self>, max: Option<Self>) -> Self
+        where T: Copy + PartialOrd
+    {
+        let mut copy_self = self.clone();
+        if let Some(min) = min {
+            copy_self.x = if min.x > copy_self.x { min.x } else { copy_self.x };
+            copy_self.y = if min.y > copy_self.y { min.y } else { copy_self.y };
+        }
+        if let Some(max) = max {
+            copy_self.x = if max.x < copy_self.x { max.x } else { copy_self.x };
+            copy_self.y = if max.y < copy_self.y { max.y } else { copy_self.y };
+        }
+        copy_self
+    }
 }
 impl<T> Mul<T> for Vec2<T>
     where T: Mul + Copy
