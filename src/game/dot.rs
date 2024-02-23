@@ -20,6 +20,8 @@ impl Dot {
     }
 
     pub fn set_next_frame(&mut self, resolution: &Resolution, delta_time: &Duration) {
+        let props = self.material.properties();
+
         let unclamped_position = self.velocity * delta_time.as_secs_f64() + self.position;
         let new_position = unclamped_position.clamp(
             Some(Vec2::new(0., 0.)),

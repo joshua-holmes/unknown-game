@@ -18,9 +18,11 @@ pub fn init() -> state::GameState {
     let mut canvas = canvas::Canvas::new(INITIAL_CANVAS_RESOLUTION);
     
     // Set some dots for testing
-    for i in 0..canvas.resolution().width {
-        canvas.dots.push(Dot::new(Material::Sand, Vec2::new(i as f64, 0.)));
-    }
+    canvas.dots.push(Dot {
+        material: Material::Sand,
+        position: Vec2::new(0., 0.),
+        velocity: Vec2::new(100., 0.),
+    });
     //
 
     state::GameState::new(canvas)
