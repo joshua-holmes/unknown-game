@@ -16,14 +16,7 @@ impl GameState {
         }
     }
 
-    pub fn set_next_frame(&mut self) {
-        // must be first step
-        self.set_time();
-
-        self.canvas.set_next_frame(&self.delta_time);
-    }
-
-    fn set_time(&mut self) {
+    pub fn set_time(&mut self) {
         let now = Instant::now();
         self.delta_time = now - self.last_frame_time;
         self.last_frame_time = now;

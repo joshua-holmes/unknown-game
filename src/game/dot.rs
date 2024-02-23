@@ -2,7 +2,7 @@ use std::time::Duration;
 
 use crate::rendering::glsl_types::Resolution;
 
-use super::{geometry::Vec2, GRAVITY};
+use super::{geometry::Vec2, GRAVITY, canvas::Check};
 
 #[derive(Debug)]
 pub struct Dot {
@@ -19,11 +19,13 @@ impl Dot {
         }
     }
 
-    pub fn set_next_frame(&mut self, resolution: &Resolution, delta_time: &Duration) {
+    pub fn set_next_frame(&mut self, resolution: &Resolution, delta_time: &Duration, check: &mut Check) {
         self.position = (self.velocity * delta_time.as_secs_f64() + self.position).clamp(
             Some(Vec2::new(0., 0.)),
             Some(Vec2::new((resolution.width - 1) as f64, (resolution.height - 1) as f64))
         );
+        check.time_sum += delta_time.as_secs_f64();
+        check.vel_sum += GRAVITY * delta_time.as_secs_f64();
         self.velocity.y += GRAVITY * delta_time.as_secs_f64();
     }
 }
