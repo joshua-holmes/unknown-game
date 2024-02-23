@@ -4,7 +4,6 @@ use crate::rendering::glsl_types::Vertex;
 
 #[derive(Debug)]
 pub struct Triangle(Vertex, Vertex, Vertex);
-#[allow(dead_code)]
 impl Triangle {
     pub fn new(point_1: [f32; 2], point_2: [f32; 2], point_3: [f32; 2]) -> Self {
         Self(

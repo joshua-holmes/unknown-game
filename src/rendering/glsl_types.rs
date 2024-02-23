@@ -14,11 +14,7 @@ pub struct Resolution {
     pub width: i32,
     pub height: i32,
 }
-#[allow(dead_code)]
 impl Resolution {
-    pub fn new(width: i32, height: i32) -> Self {
-        Self { width, height }
-    }
     pub fn update_from(&mut self, value: PhysicalSize<u32>) {
         self.width = value.width as i32;
         self.height = value.height as i32;
