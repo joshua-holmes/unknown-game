@@ -34,5 +34,13 @@ impl Dot {
         } else {
             self.velocity.y + GRAVITY * delta_time.as_secs_f64()
         };
+
+        let right_wall_collision = new_position.x == (resolution.width - 1) as f64 && self.velocity.x > 0.;
+        let left_wall_collision = new_position.x == 0. && self.velocity.x < 0.;
+        self.velocity.x = if right_wall_collision || left_wall_collision {
+            0.
+        } else {
+            self.velocity.x
+        };
     }
 }
