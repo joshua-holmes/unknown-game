@@ -12,7 +12,7 @@ pub mod material;
 const INITIAL_CANVAS_RESOLUTION: PhysicalSize<u32> = PhysicalSize::new(500, 500);
 
 // gravity of every material in the game in pixels per second ^2
-const GRAVITY: f64 = 9.8;
+const GRAVITY: Vec2<f64> = Vec2::new(0., 9.8);
 
 pub fn init() -> state::GameState {
     let mut canvas = canvas::Canvas::new(INITIAL_CANVAS_RESOLUTION);

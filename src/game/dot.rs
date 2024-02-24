@@ -50,4 +50,11 @@ impl Dot {
             self.velocity.x
         };
     }
+
+    fn calculate_acceleration(&self) -> Vec2<f64> {
+        let drag_value = self.material.properties().drag;
+        let drag = Vec2 {
+            x: 
+        }
+    }
 }
