@@ -47,6 +47,13 @@ impl Model {
     }
 }
 
+pub enum Quadrant {
+    UpperLeft,
+    UpperRight,
+    LowerLeft,
+    LowerRight,
+}
+
 #[derive(Clone, Copy, Debug)]
 pub struct Vec2<T> {
     pub x: T,
@@ -56,6 +63,7 @@ impl<T> Vec2<T> {
     pub fn new(x: T, y: T) -> Self {
         Self { x, y }
     }
+
     pub fn clamp(&self, min: Option<Self>, max: Option<Self>) -> Self
         where T: Copy + PartialOrd
     {
@@ -69,6 +77,25 @@ impl<T> Vec2<T> {
             copy_self.y = if max.y < copy_self.y { max.y } else { copy_self.y };
         }
         copy_self
+    }
+}
+impl Vec2<f64> {
+    pub fn direction_in_degrees(&self) -> f64 {
+        (self.x / self.y).tan().to_degrees()
+    }
+
+    pub fn quadrant(&self) -> Option<Quadrant> {
+        if self.x > 0. && self.y > 0. {
+            Some(Quadrant::LowerRight)
+        } else if self.x > 0. && self.y < 0. {
+            Some(Quadrant::UpperRight)
+        } else if self.x < 0. && self.y > 0. {
+            Some(Quadrant::LowerLeft)
+        } else if self.x < 0. && self.y < 0. {
+            Some(Quadrant::UpperLeft)
+        } else {
+            None
+        }
     }
 }
 impl<T> Mul<T> for Vec2<T>
