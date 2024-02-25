@@ -1,8 +1,8 @@
 use std::sync::Arc;
 
-use winit::{event_loop::EventLoop, window::Window};
+use winit::{window::Window, dpi::PhysicalPosition};
 
 pub struct WindowState {
     pub window: Arc<Window>,
-    pub event_loop: EventLoop<()>,
+    pub cursor_position: PhysicalPosition<f64>,
 }

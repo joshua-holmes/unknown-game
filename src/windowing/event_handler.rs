@@ -1,10 +1,23 @@
 use std::sync::Arc;
 
-use winit::{event::{Event, WindowEvent}, event_loop::ControlFlow, window::Window};
+use winit::{
+    event::{Event, WindowEvent},
+    event_loop::ControlFlow,
+    window::Window,
+};
 
-use crate::{rendering::render_engine::RenderEngine, game::state::GameState};
+use crate::{game::state::GameState, rendering::render_engine::RenderEngine};
 
-pub fn handle_event(event: Event<()>, control_flow: &mut ControlFlow, window: Arc<Window>, render_engine: &mut RenderEngine, game_state: &mut GameState) {
+use super::state::WindowState;
+
+pub fn handle_event(
+    event: Event<()>,
+    control_flow: &mut ControlFlow,
+    window: Arc<Window>,
+    render_engine: &mut RenderEngine,
+    game_state: &mut GameState,
+    window_state: &mut WindowState,
+) {
     match event {
         Event::WindowEvent {
             event: WindowEvent::CloseRequested,
@@ -19,6 +32,16 @@ pub fn handle_event(event: Event<()>, control_flow: &mut ControlFlow, window: Ar
         } => {
             render_engine.recreate_swapchain_and_resize_window(window.clone());
         }
+        Event::WindowEvent {
+            event: WindowEvent::CursorMoved { position, .. },
+            ..
+        } => {
+            window_state.cursor_position = position;
+        }
+        Event::WindowEvent {
+            event: WindowEvent::MouseInput { button, state, .. },
+            ..
+        } => {}
         Event::MainEventsCleared => {
             game_state.set_time();
             game_state.canvas.set_next_frame(&game_state.delta_time);
