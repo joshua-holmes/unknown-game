@@ -77,10 +77,10 @@ void main() {
     ivec2 canvas_coord = ivec2(floor(adjusted * multi * vec2(canvas_res) / vec2(window_res)));
 
     if (canvas_coord.x < 0 || canvas_coord.x >= canvas_res.x) {
-        f_color = vec4(0);
+        f_color = vec4(0.05);
         return;
     } else if (canvas_coord.y < 0 || canvas_coord.y >= canvas_res.y) {
-        f_color = vec4(0);
+        f_color = vec4(0.05);
         return;
     }
 
