@@ -1,10 +1,10 @@
-use std::time::{Duration, Instant};
+use std::time::Duration;
 
 use winit::dpi::PhysicalSize;
 
 use crate::rendering::glsl_types::Resolution;
 
-use super::{dot::Dot, geometry::Vec2, material::Material};
+use super::{dot::Dot, material::Material};
 
 pub struct Canvas {
     pub grid: Vec<Vec<Material>>,

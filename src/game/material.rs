@@ -11,17 +11,16 @@ impl Material {
                 drag: 1.
             },
             Material::Sand => MaterialProperties {
-                drag: 0.8
+                drag: 20.
             },
             Material::Dirt => MaterialProperties {
-                drag: 0.8
+                drag: 20.
             },
         }
     }
 }
 
 pub struct MaterialProperties {
-    /// value should be between 0.0 and 1.0 exclusive where 1.0 is no drag and
-    /// 0.0 is max drag (material will not move)
+    /// Higher number means more drag
     pub drag: f64,
 }

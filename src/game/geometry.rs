@@ -47,13 +47,6 @@ impl Model {
     }
 }
 
-pub enum Quadrant {
-    UpperLeft,
-    UpperRight,
-    LowerLeft,
-    LowerRight,
-}
-
 #[derive(Clone, Copy, Debug)]
 pub struct Vec2<T> {
     pub x: T,
@@ -80,22 +73,8 @@ impl<T> Vec2<T> {
     }
 }
 impl Vec2<f64> {
-    pub fn direction_in_degrees(&self) -> f64 {
-        (self.x / self.y).tan().to_degrees()
-    }
-
-    pub fn quadrant(&self) -> Option<Quadrant> {
-        if self.x > 0. && self.y > 0. {
-            Some(Quadrant::LowerRight)
-        } else if self.x > 0. && self.y < 0. {
-            Some(Quadrant::UpperRight)
-        } else if self.x < 0. && self.y > 0. {
-            Some(Quadrant::LowerLeft)
-        } else if self.x < 0. && self.y < 0. {
-            Some(Quadrant::UpperLeft)
-        } else {
-            None
-        }
+    pub fn pythagorean_theorem(&self) -> f64 {
+        (self.x.powi(2) + self.y.powi(2)).sqrt()
     }
 }
 impl<T> Mul<T> for Vec2<T>

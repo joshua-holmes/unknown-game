@@ -34,27 +34,28 @@ impl Dot {
     }
 
     fn set_velocity(&mut self, resolution: &Resolution, delta_time: &Duration) {
+        let accel = self.calculate_drag() + GRAVITY;
+        let mut new_velocity = self.velocity + (accel * delta_time.as_secs_f64());
+
         let floor_collision = self.position.y == (resolution.height - 1) as f64 && self.velocity.y >= 0.;
         let ceil_collision = self.position.y == 0. && self.velocity.y < 0.;
-        self.velocity.y = if floor_collision || ceil_collision {
-            0.
-        } else {
-            self.velocity.y + GRAVITY * delta_time.as_secs_f64()
-        };
+        if floor_collision || ceil_collision {
+            new_velocity.y = 0.;
+        }
 
         let right_wall_collision = self.position.x == (resolution.width - 1) as f64 && self.velocity.x > 0.;
         let left_wall_collision = self.position.x == 0. && self.velocity.x < 0.;
-        self.velocity.x = if right_wall_collision || left_wall_collision {
-            0.
-        } else {
-            self.velocity.x
-        };
+        if right_wall_collision || left_wall_collision {
+            new_velocity.x = 0.;
+        }
+
+        self.velocity = new_velocity;
     }
 
-    fn calculate_acceleration(&self) -> Vec2<f64> {
+    fn calculate_drag(&self) -> Vec2<f64> {
         let drag_value = self.material.properties().drag;
-        let drag = Vec2 {
-            x: 
-        }
+        let vel_value = self.velocity.pythagorean_theorem();
+        let ratio = drag_value / vel_value;
+        self.velocity * -ratio
     }
 }
