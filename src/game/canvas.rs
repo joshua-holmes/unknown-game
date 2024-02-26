@@ -1,10 +1,10 @@
 use std::time::Duration;
 
-use winit::dpi::PhysicalSize;
+use winit::dpi::{PhysicalPosition, PhysicalSize};
 
 use crate::rendering::glsl_types::Resolution;
 
-use super::{dot::Dot, material::Material};
+use super::{dot::Dot, geometry::Vec2, material::Material};
 
 pub struct Canvas {
     pub grid: Vec<Vec<Material>>,
@@ -12,11 +12,13 @@ pub struct Canvas {
 }
 impl Canvas {
     pub fn new(resolution: PhysicalSize<u32>) -> Self {
-        let grid = (0..resolution.height).map(|y| {
-            (0..resolution.width).map(|x| 
-                Material::EmptySpace
-            ).collect()
-        }).collect();
+        let grid = (0..resolution.height)
+            .map(|y| {
+                (0..resolution.width)
+                    .map(|x| Material::EmptySpace)
+                    .collect()
+            })
+            .collect();
         Self {
             grid,
             dots: Vec::with_capacity((resolution.height * resolution.width) as usize),
@@ -30,7 +32,7 @@ impl Canvas {
     pub fn resolution(&self) -> Resolution {
         Resolution {
             height: self.grid.len() as i32,
-            width: self.grid[0].len() as i32
+            width: self.grid[0].len() as i32,
         }
     }
 
@@ -40,6 +42,36 @@ impl Canvas {
             dot.set_next_frame(&res, delta_time)
         }
         self.write_dots_to_grid();
+    }
+
+    pub fn physical_position_to_game_coordinates(
+        &self,
+        physical_position: &PhysicalPosition<f64>,
+        window_resolution: &PhysicalSize<f64>,
+    ) -> Option<Vec2<f64>> {
+        let win_res = Vec2::from(window_resolution);
+        let can_res: Vec2<f64> = self.resolution().into();
+        let win_ar = win_res.x / win_res.y;
+        let can_ar = can_res.x / can_res.y;
+
+        let corrected_win_res = if win_ar > can_ar {
+            Vec2::new(win_res.y / can_ar, 0.)
+        } else {
+            Vec2::new(0., win_res.x * can_ar)
+        };
+
+        let offset = win_res - corrected_win_res;
+        let position = Vec2::from(physical_position) - offset;
+
+        if position.x < 0.
+            || position.y < 0.
+            || position.x > corrected_win_res.x
+            || position.y > corrected_win_res.y
+        {
+            None
+        } else {
+            Some(position * can_res / win_res)
+        }
     }
 
     fn write_dots_to_grid(&mut self) {

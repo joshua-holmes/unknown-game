@@ -1,6 +1,8 @@
-use std::ops::{Add, AddAssign, Mul};
+use std::ops::{Add, AddAssign, Sub, SubAssign, Mul, MulAssign, Div, DivAssign};
 
-use crate::rendering::glsl_types::Vertex;
+use winit::dpi::{PhysicalPosition, PhysicalSize};
+
+use crate::rendering::glsl_types::{Vertex, Resolution};
 
 #[derive(Debug)]
 pub struct Triangle(Vertex, Vertex, Vertex);
@@ -77,6 +79,40 @@ impl Vec2<f64> {
         (self.x.powi(2) + self.y.powi(2)).sqrt()
     }
 }
+impl<T> From<PhysicalPosition<T>> for Vec2<T> {
+    fn from(value: PhysicalPosition<T>) -> Self {
+        Self { x: value.x, y: value.y, }
+    }
+}
+impl<T> From<&PhysicalPosition<T>> for Vec2<T> {
+    fn from(value: &PhysicalPosition<T>) -> Self {
+        Self { x: value.x, y: value.y, }
+    }
+}
+impl<T> From<PhysicalSize<T>> for Vec2<T> {
+    fn from(value: PhysicalSize<T>) -> Self {
+        Self { x: value.width, y: value.height, }
+    }
+}
+impl<T> From<&PhysicalSize<T>> for Vec2<T> {
+    fn from(value: &PhysicalSize<T>) -> Self {
+        Self { x: value.width, y: value.height, }
+    }
+}
+impl<T> From<Resolution> for Vec2<T>
+    where T: From<i32>
+{
+    fn from(value: Resolution) -> Self {
+        Self { x: T::from(value.width), y: T::from(value.height), }
+    }
+}
+impl<T> From<&Resolution> for Vec2<T>
+    where T: From<i32>
+{
+    fn from(value: &Resolution) -> Self {
+        Self { x: T::from(value.width), y: T::from(value.height), }
+    }
+}
 impl<T> Mul<T> for Vec2<T>
     where T: Mul + Copy
 {
@@ -135,5 +171,119 @@ impl<T> AddAssign for &mut Vec2<T>
     fn add_assign(&mut self, rhs: Self) {
         self.x += rhs.x;
         self.y += rhs.y;
+    }
+}
+impl<T> Div for Vec2<T>
+    where T: Div
+{
+    type Output = Vec2<T::Output>;
+    fn div(self, rhs: Self) -> Self::Output {
+        Self::Output {
+            x: self.x / rhs.x,
+            y: self.y / rhs.y,
+        }
+    }
+}
+impl<T> DivAssign for Vec2<T>
+    where T: DivAssign
+{
+    fn div_assign(&mut self, rhs: Self) {
+        self.x /= rhs.x;
+        self.y /= rhs.y;
+    }
+}
+impl<'a, T> Div for &'a Vec2<T>
+    where T: Div
+{
+    type Output = Vec2<T::Output>;
+    fn div(self, rhs: Self) -> Self::Output {
+        Self::Output {
+            x: self.x / rhs.x,
+            y: self.y / rhs.y,
+        }
+    }
+}
+impl<T> DivAssign for &Vec2<T>
+    where T: DivAssign
+{
+    fn div_assign(&mut self, rhs: Self) {
+        self.x /= rhs.x;
+        self.y /= rhs.y;
+    }
+}
+impl<T> Sub for Vec2<T>
+    where T: Sub
+{
+    type Output = Vec2<T::Output>;
+    fn sub(self, rhs: Self) -> Self::Output {
+        Self::Output {
+            x: self.x - rhs.x,
+            y: self.y - rhs.y,
+        }
+    }
+}
+impl<T> SubAssign for Vec2<T>
+    where T: SubAssign
+{
+    fn sub_assign(&mut self, rhs: Self) {
+        self.x -= rhs.x;
+        self.y -= rhs.y;
+    }
+}
+impl<'a, T> Sub for &'a Vec2<T>
+    where T: Sub
+{
+    type Output = Vec2<T::Output>;
+    fn sub(self, rhs: Self) -> Self::Output {
+        Self::Output {
+            x: self.x - rhs.x,
+            y: self.y - rhs.y,
+        }
+    }
+}
+impl<T> SubAssign for &Vec2<T>
+    where T: SubAssign
+{
+    fn sub_assign(&mut self, rhs: Self) {
+        self.x -= rhs.x;
+        self.y -= rhs.y;
+    }
+}
+impl<T> Mul for Vec2<T>
+    where T: Mul
+{
+    type Output = Vec2<T::Output>;
+    fn mul(self, rhs: Self) -> Self::Output {
+        Self::Output {
+            x: self.x * rhs.x,
+            y: self.y * rhs.y,
+        }
+    }
+}
+impl<T> MulAssign for Vec2<T>
+    where T: MulAssign
+{
+    fn mul_assign(&mut self, rhs: Self) {
+        self.x *= rhs.x;
+        self.y *= rhs.y;
+    }
+}
+impl<'a, T> Mul for &'a Vec2<T>
+    where T: Mul
+{
+    type Output = Vec2<T::Output>;
+    fn mul(self, rhs: Self) -> Self::Output {
+        Self::Output {
+            x: self.x * rhs.x,
+            y: self.y * rhs.y,
+        }
+    }
+}
+impl<T> MulAssign for &Vec2<T>
+    where T: MulAssign
+{
+    fn mul_assign(&mut self, rhs: Self) {
+        self.x *= rhs.x;
+        self.y *= rhs.y;
     }
 }
