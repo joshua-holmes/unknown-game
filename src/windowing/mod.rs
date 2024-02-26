@@ -1,21 +1,13 @@
-use std::sync::Arc;
-
-use winit::{event_loop::EventLoop, window::Window, dpi::PhysicalPosition};
+use winit::event_loop::EventLoop;
 
 mod event_handler;
-mod state;
+pub mod state;
 
 use crate::rendering::render_engine::RenderEngine;
 
 use self::state::WindowState;
 
 use super::game::state::GameState;
-
-pub fn init(event_loop: &EventLoop<()>) -> WindowState {
-    let window = Arc::new(Window::new(event_loop).unwrap());
-
-    WindowState { window, cursor_position: PhysicalPosition::new(0., 0.) }
-}
 
 pub fn run_game_loop(
     event_loop: EventLoop<()>,

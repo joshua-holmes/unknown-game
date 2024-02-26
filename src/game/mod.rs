@@ -1,6 +1,6 @@
 use winit::dpi::PhysicalSize;
 
-use self::{dot::Dot, material::Material, geometry::Vec2};
+use self::geometry::Vec2;
 
 pub mod state;
 pub mod canvas;
@@ -17,16 +17,3 @@ const GRAVITY: Vec2<f64> = Vec2 {
     y: 40.,
 };
 
-pub fn init() -> state::GameState {
-    let mut canvas = canvas::Canvas::new(INITIAL_CANVAS_RESOLUTION);
-    
-    // Set some dots for testing
-    canvas.dots.push(Dot {
-        material: Material::Sand,
-        position: Vec2::new(0., 0.),
-        velocity: Vec2::new(100., 0.),
-    });
-    //
-
-    state::GameState::new(canvas)
-}

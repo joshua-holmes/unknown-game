@@ -5,10 +5,10 @@ mod rendering;
 mod game;
 
 fn main() {
-    let game_state = game::init();
+    let game_state = game::state::GameState::new();
     let event_loop = EventLoop::new();
-    let window_state = windowing::init(&event_loop);
-    let render_engine = rendering::init(
+    let window_state = windowing::state::WindowState::new(&event_loop);
+    let render_engine = rendering::render_engine::RenderEngine::new(
         &event_loop,
         window_state.window.clone(),
         &game_state.canvas
