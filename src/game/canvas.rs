@@ -44,12 +44,23 @@ impl Canvas {
         self.write_dots_to_grid();
     }
 
+    pub fn spawn_dots(
+        &mut self,
+        cursor_position: &PhysicalPosition<f64>,
+        window_resolution: &PhysicalSize<u32>,
+    ) {
+        self.physical_position_to_game_coordinates(cursor_position, window_resolution);
+    }
+
     pub fn physical_position_to_game_coordinates(
         &self,
         physical_position: &PhysicalPosition<f64>,
-        window_resolution: &PhysicalSize<f64>,
+        window_resolution: &PhysicalSize<u32>,
     ) -> Option<Vec2<f64>> {
-        let win_res = Vec2::from(window_resolution);
+        let win_res = Vec2::new(
+            window_resolution.width as f64,
+            window_resolution.height as f64,
+        );
         let can_res: Vec2<f64> = self.resolution().into();
         let win_ar = win_res.x / win_res.y;
         let can_ar = can_res.x / can_res.y;
@@ -63,6 +74,7 @@ impl Canvas {
         let offset = win_res - corrected_win_res;
         let position = Vec2::from(physical_position) - offset;
 
+        println!("position {:?}", position);
         if position.x < 0.
             || position.y < 0.
             || position.x > corrected_win_res.x

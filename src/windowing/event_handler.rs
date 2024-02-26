@@ -1,7 +1,7 @@
 use std::sync::Arc;
 
 use winit::{
-    event::{Event, WindowEvent},
+    event::{ElementState, Event, MouseButton, WindowEvent},
     event_loop::ControlFlow,
     window::Window,
 };
@@ -39,9 +39,19 @@ pub fn handle_event(
             window_state.cursor_position = position;
         }
         Event::WindowEvent {
-            event: WindowEvent::MouseInput { button, state, .. },
+            event:
+                WindowEvent::MouseInput {
+                    button: MouseButton::Left,
+                    state: ElementState::Pressed,
+                    ..
+                },
             ..
-        } => {}
+        } => {
+            game_state.canvas.spawn_dots(
+                &window_state.cursor_position,
+                &window_state.window.inner_size(),
+            );
+        }
         Event::MainEventsCleared => {
             game_state.set_time();
             game_state.canvas.set_next_frame(&game_state.delta_time);
