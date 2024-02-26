@@ -193,7 +193,7 @@ impl<T> DivAssign for Vec2<T>
     }
 }
 impl<'a, T> Div for &'a Vec2<T>
-    where T: Div
+    where T: Div + Copy
 {
     type Output = Vec2<T::Output>;
     fn div(self, rhs: Self) -> Self::Output {
@@ -203,8 +203,8 @@ impl<'a, T> Div for &'a Vec2<T>
         }
     }
 }
-impl<T> DivAssign for &Vec2<T>
-    where T: DivAssign
+impl<T> DivAssign for &mut Vec2<T>
+    where T: DivAssign + Copy
 {
     fn div_assign(&mut self, rhs: Self) {
         self.x /= rhs.x;
@@ -231,7 +231,7 @@ impl<T> SubAssign for Vec2<T>
     }
 }
 impl<'a, T> Sub for &'a Vec2<T>
-    where T: Sub
+    where T: Sub + Copy
 {
     type Output = Vec2<T::Output>;
     fn sub(self, rhs: Self) -> Self::Output {
@@ -241,8 +241,8 @@ impl<'a, T> Sub for &'a Vec2<T>
         }
     }
 }
-impl<T> SubAssign for &Vec2<T>
-    where T: SubAssign
+impl<T> SubAssign for &mut Vec2<T>
+    where T: SubAssign + Copy
 {
     fn sub_assign(&mut self, rhs: Self) {
         self.x -= rhs.x;
@@ -269,7 +269,7 @@ impl<T> MulAssign for Vec2<T>
     }
 }
 impl<'a, T> Mul for &'a Vec2<T>
-    where T: Mul
+    where T: Mul + Copy
 {
     type Output = Vec2<T::Output>;
     fn mul(self, rhs: Self) -> Self::Output {
@@ -279,8 +279,8 @@ impl<'a, T> Mul for &'a Vec2<T>
         }
     }
 }
-impl<T> MulAssign for &Vec2<T>
-    where T: MulAssign
+impl<T> MulAssign for &mut Vec2<T>
+    where T: MulAssign + Copy
 {
     fn mul_assign(&mut self, rhs: Self) {
         self.x *= rhs.x;
