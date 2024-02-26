@@ -84,7 +84,9 @@ impl<T> From<PhysicalPosition<T>> for Vec2<T> {
         Self { x: value.x, y: value.y, }
     }
 }
-impl<T> From<&PhysicalPosition<T>> for Vec2<T> {
+impl<T> From<&PhysicalPosition<T>> for Vec2<T>
+    where T: Copy
+{
     fn from(value: &PhysicalPosition<T>) -> Self {
         Self { x: value.x, y: value.y, }
     }
@@ -94,7 +96,9 @@ impl<T> From<PhysicalSize<T>> for Vec2<T> {
         Self { x: value.width, y: value.height, }
     }
 }
-impl<T> From<&PhysicalSize<T>> for Vec2<T> {
+impl<T> From<&PhysicalSize<T>> for Vec2<T>
+    where T: Copy
+{
     fn from(value: &PhysicalSize<T>) -> Self {
         Self { x: value.width, y: value.height, }
     }
