@@ -1,14 +1,20 @@
-use std::time::Duration;
+use std::time::{Duration, Instant};
 
 use winit::dpi::{PhysicalPosition, PhysicalSize};
 
 use crate::rendering::glsl_types::Resolution;
 
-use super::{dot::Dot, geometry::Vec2, material::Material};
+use super::{dot::Dot, geometry::Vec2, material::Material, DELAY_BETWEEN_DOTS};
+
+pub enum CoordConversion<T> {
+    Converted(T),
+    OutOfBounds,
+}
 
 pub struct Canvas {
     pub grid: Vec<Vec<Material>>,
     pub dots: Vec<Dot>,
+    pub last_dot_spawned: Instant,
 }
 impl Canvas {
     pub fn new(resolution: PhysicalSize<u32>) -> Self {
@@ -22,6 +28,7 @@ impl Canvas {
         Self {
             grid,
             dots: Vec::with_capacity((resolution.height * resolution.width) as usize),
+            last_dot_spawned: Instant::now(),
         }
     }
 
@@ -49,13 +56,14 @@ impl Canvas {
         cursor_position: &PhysicalPosition<f64>,
         window_resolution: &PhysicalSize<u32>,
     ) {
-        if let Some(coord) =
-            self.physical_position_to_game_coordinates(cursor_position, window_resolution)
-        {
-            let new_dot = Dot::new(Material::Dirt, coord);
-            self.dots.push(new_dot);
-        } else {
-            println!("WARNING! Clicked outside of game space");
+        if self.last_dot_spawned.elapsed() >= DELAY_BETWEEN_DOTS {
+            match self.physical_position_to_game_coordinates(cursor_position, window_resolution) {
+                CoordConversion::Converted(coord) => {
+                    self.dots.push(Dot::new(Material::Dirt, coord));
+                    self.last_dot_spawned = Instant::now();
+                },
+                CoordConversion::OutOfBounds => println!("WARNING! Clicked outside of game space"),
+            }
         }
     }
 
@@ -63,7 +71,7 @@ impl Canvas {
         &self,
         physical_position: &PhysicalPosition<f64>,
         window_resolution: &PhysicalSize<u32>,
-    ) -> Option<Vec2<f64>> {
+    ) -> CoordConversion<Vec2<f64>> {
         let win_res = Vec2::new(
             window_resolution.width as f64,
             window_resolution.height as f64,
@@ -86,9 +94,9 @@ impl Canvas {
             || game_coord.x > can_res.x
             || game_coord.y > can_res.y
         {
-            None
+            CoordConversion::OutOfBounds
         } else {
-            Some(game_coord)
+            CoordConversion::Converted(game_coord)
         }
     }
 

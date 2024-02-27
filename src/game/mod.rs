@@ -1,3 +1,5 @@
+use std::time::Duration;
+
 use winit::dpi::PhysicalSize;
 
 use self::geometry::Vec2;
@@ -13,3 +15,6 @@ const INITIAL_CANVAS_RESOLUTION: PhysicalSize<u32> = PhysicalSize::new(500, 500)
 
 // gravity of every material in the game in pixels per second ^2
 const GRAVITY: Vec2<f64> = Vec2 { x: 0., y: 40. };
+
+// while holding mouse button down, delay between pixels that get spawned
+const DELAY_BETWEEN_DOTS: Duration = Duration::from_millis(50);
