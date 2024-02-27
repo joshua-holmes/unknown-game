@@ -1,4 +1,4 @@
-use vulkano::{pipeline::graphics::vertex_input::Vertex as VertexMacro, buffer::BufferContents};
+use vulkano::{buffer::BufferContents, pipeline::graphics::vertex_input::Vertex as VertexMacro};
 use winit::dpi::PhysicalSize;
 
 #[derive(BufferContents, VertexMacro, Debug)]
@@ -22,11 +22,17 @@ impl Resolution {
 }
 impl From<PhysicalSize<u32>> for Resolution {
     fn from(value: PhysicalSize<u32>) -> Self {
-        Self { width: value.width as i32, height: value.height as i32 }
+        Self {
+            width: value.width as i32,
+            height: value.height as i32,
+        }
     }
 }
 impl From<&PhysicalSize<u32>> for Resolution {
     fn from(value: &PhysicalSize<u32>) -> Self {
-        Self { width: value.width as i32, height: value.height as i32 }
+        Self {
+            width: value.width as i32,
+            height: value.height as i32,
+        }
     }
 }

@@ -1,6 +1,8 @@
 use std::time::{Duration, Instant};
 
-use super::{canvas::Canvas, INITIAL_CANVAS_RESOLUTION, dot::Dot, material::Material, geometry::Vec2};
+use super::{
+    canvas::Canvas, dot::Dot, geometry::Vec2, material::Material, INITIAL_CANVAS_RESOLUTION,
+};
 
 pub struct GameState {
     pub canvas: Canvas,
@@ -10,7 +12,7 @@ pub struct GameState {
 impl GameState {
     pub fn new() -> Self {
         let mut canvas = Canvas::new(INITIAL_CANVAS_RESOLUTION);
-        
+
         // Set some dots for testing
         canvas.dots.push(Dot {
             material: Material::Sand,

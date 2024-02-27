@@ -1,8 +1,8 @@
 use winit::event_loop::EventLoop;
 
-mod windowing;
-mod rendering;
 mod game;
+mod rendering;
+mod windowing;
 
 fn main() {
     let game_state = game::state::GameState::new();
@@ -11,7 +11,7 @@ fn main() {
     let render_engine = rendering::render_engine::RenderEngine::new(
         &event_loop,
         window_state.window.clone(),
-        &game_state.canvas
+        &game_state.canvas,
     );
 
     windowing::run_game_loop(event_loop, window_state, render_engine, game_state);

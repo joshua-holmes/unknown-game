@@ -1,24 +1,30 @@
 use std::sync::Arc;
 
-use crate::{game::canvas::Canvas, game::geometry::{Triangle, Model}};
+use crate::{
+    game::canvas::Canvas,
+    game::geometry::{Model, Triangle},
+};
 use vulkano::{
     buffer::subbuffer::Subbuffer,
     buffer::{Buffer, BufferCreateInfo, BufferUsage},
     command_buffer::{
         allocator::{StandardCommandBufferAllocator, StandardCommandBufferAllocatorCreateInfo},
-        AutoCommandBufferBuilder, CommandBufferExecFuture, CommandBufferUsage, PrimaryAutoCommandBuffer, RenderPassBeginInfo, SubpassBeginInfo,
-        SubpassEndInfo,
+        AutoCommandBufferBuilder, CommandBufferExecFuture, CommandBufferUsage,
+        PrimaryAutoCommandBuffer, RenderPassBeginInfo, SubpassBeginInfo, SubpassEndInfo,
+    },
+    descriptor_set::{
+        allocator::{StandardDescriptorSetAllocator, StandardDescriptorSetAllocatorCreateInfo},
+        PersistentDescriptorSet, WriteDescriptorSet,
     },
     device::{
-        physical::PhysicalDeviceType, Device, DeviceCreateInfo, DeviceExtensions, Queue, Features,
+        physical::PhysicalDeviceType, Device, DeviceCreateInfo, DeviceExtensions, Features, Queue,
         QueueCreateInfo, QueueFlags,
     },
     format::ClearValue,
     image::{view::ImageView, Image, ImageUsage},
     instance::{Instance, InstanceCreateInfo},
     memory::allocator::{
-        AllocationCreateInfo, MemoryAllocatePreference,
-        MemoryTypeFilter, StandardMemoryAllocator,
+        AllocationCreateInfo, MemoryAllocatePreference, MemoryTypeFilter, StandardMemoryAllocator,
     },
     pipeline::{
         graphics::{
@@ -26,29 +32,30 @@ use vulkano::{
             input_assembly::InputAssemblyState,
             multisample::MultisampleState,
             rasterization::RasterizationState,
+            vertex_input::{Vertex as VertexMacro, VertexDefinition},
             viewport::{Viewport, ViewportState},
             GraphicsPipelineCreateInfo,
-            vertex_input::{Vertex as VertexMacro, VertexDefinition}
         },
         layout::PipelineDescriptorSetLayoutCreateInfo,
-        GraphicsPipeline, PipelineLayout, PipelineShaderStageCreateInfo, PipelineBindPoint, Pipeline,
+        GraphicsPipeline, Pipeline, PipelineBindPoint, PipelineLayout,
+        PipelineShaderStageCreateInfo,
     },
     render_pass::{Framebuffer, FramebufferCreateInfo, RenderPass, Subpass},
     shader::ShaderModule,
     swapchain::{
-        self, PresentFuture, Surface, Swapchain, SwapchainAcquireFuture, SwapchainCreateInfo,
-        SwapchainPresentInfo, PresentMode, FullScreenExclusive,
+        self, FullScreenExclusive, PresentFuture, PresentMode, Surface, Swapchain,
+        SwapchainAcquireFuture, SwapchainCreateInfo, SwapchainPresentInfo,
     },
     sync::{
         self,
         future::{FenceSignalFuture, JoinFuture},
         GpuFuture,
     },
-    Validated, Version, VulkanError, VulkanLibrary, descriptor_set::{PersistentDescriptorSet, allocator::{StandardDescriptorSetAllocator, StandardDescriptorSetAllocatorCreateInfo}, WriteDescriptorSet},
+    Validated, Version, VulkanError, VulkanLibrary,
 };
 use winit::{dpi::PhysicalSize, event_loop::EventLoop, window::Window};
 
-use super::glsl_types::{Vertex, Resolution};
+use super::glsl_types::{Resolution, Vertex};
 use super::load_shaders;
 
 // set number of the available descriptor sets
@@ -71,17 +78,11 @@ struct AppliedDescriptorSets {
 }
 impl AppliedDescriptorSets {
     fn to_vec_of_sorted_sets(&self) -> Vec<Arc<PersistentDescriptorSet>> {
-        let mut sets = [
-            &self.ds_per_frame_storage,
-            &self.ds_infrequent_uniform,
-        ]
-        .into_iter()
-        .collect::<Vec<_>>();
-        sets.sort_by_key(|ds| ds.set_number);
-        sets
+        let mut sets = [&self.ds_per_frame_storage, &self.ds_infrequent_uniform]
             .into_iter()
-            .map(|ds| ds.set.clone())
-            .collect()
+            .collect::<Vec<_>>();
+        sets.sort_by_key(|ds| ds.set_number);
+        sets.into_iter().map(|ds| ds.set.clone()).collect()
     }
 }
 
@@ -228,17 +229,17 @@ impl RenderEngine {
         resolution: Resolution,
     ) -> Subbuffer<[Resolution]> {
         Buffer::from_iter(
-            memory_allocator, 
+            memory_allocator,
             BufferCreateInfo {
                 usage: BufferUsage::UNIFORM_BUFFER,
                 ..Default::default()
-            }, AllocationCreateInfo {
-                memory_type_filter: MemoryTypeFilter::PREFER_DEVICE | MemoryTypeFilter::HOST_SEQUENTIAL_WRITE,
+            },
+            AllocationCreateInfo {
+                memory_type_filter: MemoryTypeFilter::PREFER_DEVICE
+                    | MemoryTypeFilter::HOST_SEQUENTIAL_WRITE,
                 ..Default::default()
-            }, 
-            [
-                resolution,
-            ],
+            },
+            [resolution],
         )
         .unwrap()
     }
@@ -407,14 +408,11 @@ impl RenderEngine {
             set: PersistentDescriptorSet::new(
                 descriptor_set_allocator,
                 layout.clone(),
-                [WriteDescriptorSet::buffer(
-                    0,
-                    canvas_buffer.clone()
-                )],
-                []
+                [WriteDescriptorSet::buffer(0, canvas_buffer.clone())],
+                [],
             )
             .unwrap(),
-            set_number
+            set_number,
         }
     }
 
@@ -435,17 +433,15 @@ impl RenderEngine {
             set: PersistentDescriptorSet::new(
                 descriptor_set_allocator,
                 layout.clone(),
-                [window_res_buffer, canvas_res_buffer].into_iter().enumerate().map(|(i, buf)| {
-                    WriteDescriptorSet::buffer(
-                        i as u32,
-                        buf.clone()
-                    )
-                })
-                .collect::<Vec<_>>(),
-                []
+                [window_res_buffer, canvas_res_buffer]
+                    .into_iter()
+                    .enumerate()
+                    .map(|(i, buf)| WriteDescriptorSet::buffer(i as u32, buf.clone()))
+                    .collect::<Vec<_>>(),
+                [],
             )
             .unwrap(),
-            set_number
+            set_number,
         }
     }
 
@@ -489,7 +485,7 @@ impl RenderEngine {
                         PipelineBindPoint::Graphics,
                         pipeline.layout().clone(),
                         0,
-                        descriptor_sets.to_vec_of_sorted_sets()
+                        descriptor_sets.to_vec_of_sorted_sets(),
                     )
                     .unwrap()
                     .draw(vertex_buffer.len() as u32, 1, 0, 0)
@@ -548,7 +544,7 @@ impl RenderEngine {
             new_pipeline,
             &new_framebuffers,
             &self.vertex_buffer,
-            &self.descriptor_sets
+            &self.descriptor_sets,
         );
 
         self.command_buffers = new_command_buffers;
@@ -589,7 +585,13 @@ impl RenderEngine {
         self.flush_swapchain();
 
         // write canvas data to buffer
-        for (mat, new_mat) in self.canvas_buffer.write().unwrap().iter_mut().zip(canvas.iter_materials()) {
+        for (mat, new_mat) in self
+            .canvas_buffer
+            .write()
+            .unwrap()
+            .iter_mut()
+            .zip(canvas.iter_materials())
+        {
             *mat = new_mat;
         }
 
@@ -659,24 +661,22 @@ impl RenderEngine {
 
         // vertex setup
         let canvas_model = Self::create_canvas_model();
-        let vertex_buffer =
-            Self::create_vertex_buffer(memory_allocator.clone(), canvas_model.into_vec_of_verticies());
+        let vertex_buffer = Self::create_vertex_buffer(
+            memory_allocator.clone(),
+            canvas_model.into_vec_of_verticies(),
+        );
 
         // canvas setup
-        let canvas_buffer = Self::create_canvas_buffer(
-            memory_allocator.clone(),
-            canvas.iter_materials().collect(),
-        );
+        let canvas_buffer =
+            Self::create_canvas_buffer(memory_allocator.clone(), canvas.iter_materials().collect());
 
         // resolutions_setup
         let window_res_buffer = Self::create_resolution_buffer(
             memory_allocator.clone(),
             Resolution::from(window.inner_size()),
         );
-        let canvas_res_buffer = Self::create_resolution_buffer(
-            memory_allocator.clone(),
-            canvas.resolution(),
-        );
+        let canvas_res_buffer =
+            Self::create_resolution_buffer(memory_allocator.clone(), canvas.resolution());
 
         // setup render pass
         let render_pass = Self::create_render_pass(device.clone(), swapchain.clone());
@@ -703,7 +703,7 @@ impl RenderEngine {
             StandardDescriptorSetAllocatorCreateInfo {
                 update_after_bind: true,
                 ..Default::default()
-            }
+            },
         );
 
         // create descriptor sets
@@ -732,7 +732,7 @@ impl RenderEngine {
             pipeline.clone(),
             &framebuffers,
             &vertex_buffer,
-            &descriptor_sets
+            &descriptor_sets,
         );
 
         // setup fences vector so CPU doesn't have to wait for GPU

@@ -13,9 +13,9 @@ pub struct Canvas {
 impl Canvas {
     pub fn new(resolution: PhysicalSize<u32>) -> Self {
         let grid = (0..resolution.height)
-            .map(|y| {
+            .map(|_| {
                 (0..resolution.width)
-                    .map(|x| Material::EmptySpace)
+                    .map(|_| Material::EmptySpace)
                     .collect()
             })
             .collect();
@@ -49,7 +49,9 @@ impl Canvas {
         cursor_position: &PhysicalPosition<f64>,
         window_resolution: &PhysicalSize<u32>,
     ) {
-        if let Some(coord) = self.physical_position_to_game_coordinates(cursor_position, window_resolution) {
+        if let Some(coord) =
+            self.physical_position_to_game_coordinates(cursor_position, window_resolution)
+        {
             let new_dot = Dot::new(Material::Dirt, coord);
             self.dots.push(new_dot);
         } else {

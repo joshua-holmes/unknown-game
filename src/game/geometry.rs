@@ -1,8 +1,8 @@
-use std::ops::{Add, AddAssign, Sub, SubAssign, Mul, MulAssign, Div, DivAssign};
+use std::ops::{Add, AddAssign, Div, DivAssign, Mul, MulAssign, Sub, SubAssign};
 
 use winit::dpi::{PhysicalPosition, PhysicalSize};
 
-use crate::rendering::glsl_types::{Vertex, Resolution};
+use crate::rendering::glsl_types::{Resolution, Vertex};
 
 #[derive(Debug)]
 pub struct Triangle(Vertex, Vertex, Vertex);
@@ -60,16 +60,33 @@ impl<T> Vec2<T> {
     }
 
     pub fn clamp(&self, min: Option<Self>, max: Option<Self>) -> Self
-        where T: Copy + PartialOrd
+    where
+        T: Copy + PartialOrd,
     {
         let mut copy_self = self.clone();
         if let Some(min) = min {
-            copy_self.x = if min.x > copy_self.x { min.x } else { copy_self.x };
-            copy_self.y = if min.y > copy_self.y { min.y } else { copy_self.y };
+            copy_self.x = if min.x > copy_self.x {
+                min.x
+            } else {
+                copy_self.x
+            };
+            copy_self.y = if min.y > copy_self.y {
+                min.y
+            } else {
+                copy_self.y
+            };
         }
         if let Some(max) = max {
-            copy_self.x = if max.x < copy_self.x { max.x } else { copy_self.x };
-            copy_self.y = if max.y < copy_self.y { max.y } else { copy_self.y };
+            copy_self.x = if max.x < copy_self.x {
+                max.x
+            } else {
+                copy_self.x
+            };
+            copy_self.y = if max.y < copy_self.y {
+                max.y
+            } else {
+                copy_self.y
+            };
         }
         copy_self
     }
@@ -81,44 +98,67 @@ impl Vec2<f64> {
 }
 impl<T> From<PhysicalPosition<T>> for Vec2<T> {
     fn from(value: PhysicalPosition<T>) -> Self {
-        Self { x: value.x, y: value.y, }
+        Self {
+            x: value.x,
+            y: value.y,
+        }
     }
 }
 impl<T> From<&PhysicalPosition<T>> for Vec2<T>
-    where T: Copy
+where
+    T: Copy,
 {
     fn from(value: &PhysicalPosition<T>) -> Self {
-        Self { x: value.x, y: value.y, }
+        Self {
+            x: value.x,
+            y: value.y,
+        }
     }
 }
 impl<T> From<PhysicalSize<T>> for Vec2<T> {
     fn from(value: PhysicalSize<T>) -> Self {
-        Self { x: value.width, y: value.height, }
+        Self {
+            x: value.width,
+            y: value.height,
+        }
     }
 }
 impl<T> From<&PhysicalSize<T>> for Vec2<T>
-    where T: Copy
+where
+    T: Copy,
 {
     fn from(value: &PhysicalSize<T>) -> Self {
-        Self { x: value.width, y: value.height, }
+        Self {
+            x: value.width,
+            y: value.height,
+        }
     }
 }
 impl<T> From<Resolution> for Vec2<T>
-    where T: From<i32>
+where
+    T: From<i32>,
 {
     fn from(value: Resolution) -> Self {
-        Self { x: T::from(value.width), y: T::from(value.height), }
+        Self {
+            x: T::from(value.width),
+            y: T::from(value.height),
+        }
     }
 }
 impl<T> From<&Resolution> for Vec2<T>
-    where T: From<i32>
+where
+    T: From<i32>,
 {
     fn from(value: &Resolution) -> Self {
-        Self { x: T::from(value.width), y: T::from(value.height), }
+        Self {
+            x: T::from(value.width),
+            y: T::from(value.height),
+        }
     }
 }
 impl<T> Mul<T> for Vec2<T>
-    where T: Mul + Copy
+where
+    T: Mul + Copy,
 {
     type Output = Vec2<T::Output>;
     fn mul(self, rhs: T) -> Self::Output {
@@ -129,7 +169,8 @@ impl<T> Mul<T> for Vec2<T>
     }
 }
 impl<T> Mul<T> for &Vec2<T>
-    where T: Mul + Copy
+where
+    T: Mul + Copy,
 {
     type Output = Vec2<T::Output>;
     fn mul(self, rhs: T) -> Self::Output {
@@ -140,7 +181,8 @@ impl<T> Mul<T> for &Vec2<T>
     }
 }
 impl<T> Div<T> for Vec2<T>
-    where T: Div + Copy
+where
+    T: Div + Copy,
 {
     type Output = Vec2<T::Output>;
     fn div(self, rhs: T) -> Self::Output {
@@ -151,7 +193,8 @@ impl<T> Div<T> for Vec2<T>
     }
 }
 impl<T> Div<T> for &Vec2<T>
-    where T: Div + Copy
+where
+    T: Div + Copy,
 {
     type Output = Vec2<T::Output>;
     fn div(self, rhs: T) -> Self::Output {
@@ -162,7 +205,8 @@ impl<T> Div<T> for &Vec2<T>
     }
 }
 impl<T> Add for Vec2<T>
-    where T: Add
+where
+    T: Add,
 {
     type Output = Vec2<T::Output>;
     fn add(self, rhs: Self) -> Self::Output {
@@ -173,7 +217,8 @@ impl<T> Add for Vec2<T>
     }
 }
 impl<T> AddAssign for Vec2<T>
-    where T: AddAssign
+where
+    T: AddAssign,
 {
     fn add_assign(&mut self, rhs: Self) {
         self.x += rhs.x;
@@ -181,7 +226,8 @@ impl<T> AddAssign for Vec2<T>
     }
 }
 impl<'a, T> Add for &'a Vec2<T>
-    where T: Add + Copy
+where
+    T: Add + Copy,
 {
     type Output = Vec2<T::Output>;
     fn add(self, rhs: Self) -> Self::Output {
@@ -192,7 +238,8 @@ impl<'a, T> Add for &'a Vec2<T>
     }
 }
 impl<T> AddAssign for &mut Vec2<T>
-    where T: AddAssign + Copy
+where
+    T: AddAssign + Copy,
 {
     fn add_assign(&mut self, rhs: Self) {
         self.x += rhs.x;
@@ -200,7 +247,8 @@ impl<T> AddAssign for &mut Vec2<T>
     }
 }
 impl<T> Div for Vec2<T>
-    where T: Div
+where
+    T: Div,
 {
     type Output = Vec2<T::Output>;
     fn div(self, rhs: Self) -> Self::Output {
@@ -211,7 +259,8 @@ impl<T> Div for Vec2<T>
     }
 }
 impl<T> DivAssign for Vec2<T>
-    where T: DivAssign
+where
+    T: DivAssign,
 {
     fn div_assign(&mut self, rhs: Self) {
         self.x /= rhs.x;
@@ -219,7 +268,8 @@ impl<T> DivAssign for Vec2<T>
     }
 }
 impl<'a, T> Div for &'a Vec2<T>
-    where T: Div + Copy
+where
+    T: Div + Copy,
 {
     type Output = Vec2<T::Output>;
     fn div(self, rhs: Self) -> Self::Output {
@@ -230,7 +280,8 @@ impl<'a, T> Div for &'a Vec2<T>
     }
 }
 impl<T> DivAssign for &mut Vec2<T>
-    where T: DivAssign + Copy
+where
+    T: DivAssign + Copy,
 {
     fn div_assign(&mut self, rhs: Self) {
         self.x /= rhs.x;
@@ -238,7 +289,8 @@ impl<T> DivAssign for &mut Vec2<T>
     }
 }
 impl<T> Sub for Vec2<T>
-    where T: Sub
+where
+    T: Sub,
 {
     type Output = Vec2<T::Output>;
     fn sub(self, rhs: Self) -> Self::Output {
@@ -249,7 +301,8 @@ impl<T> Sub for Vec2<T>
     }
 }
 impl<T> SubAssign for Vec2<T>
-    where T: SubAssign
+where
+    T: SubAssign,
 {
     fn sub_assign(&mut self, rhs: Self) {
         self.x -= rhs.x;
@@ -257,7 +310,8 @@ impl<T> SubAssign for Vec2<T>
     }
 }
 impl<'a, T> Sub for &'a Vec2<T>
-    where T: Sub + Copy
+where
+    T: Sub + Copy,
 {
     type Output = Vec2<T::Output>;
     fn sub(self, rhs: Self) -> Self::Output {
@@ -268,7 +322,8 @@ impl<'a, T> Sub for &'a Vec2<T>
     }
 }
 impl<T> SubAssign for &mut Vec2<T>
-    where T: SubAssign + Copy
+where
+    T: SubAssign + Copy,
 {
     fn sub_assign(&mut self, rhs: Self) {
         self.x -= rhs.x;
@@ -276,7 +331,8 @@ impl<T> SubAssign for &mut Vec2<T>
     }
 }
 impl<T> Mul for Vec2<T>
-    where T: Mul
+where
+    T: Mul,
 {
     type Output = Vec2<T::Output>;
     fn mul(self, rhs: Self) -> Self::Output {
@@ -287,7 +343,8 @@ impl<T> Mul for Vec2<T>
     }
 }
 impl<T> MulAssign for Vec2<T>
-    where T: MulAssign
+where
+    T: MulAssign,
 {
     fn mul_assign(&mut self, rhs: Self) {
         self.x *= rhs.x;
@@ -295,7 +352,8 @@ impl<T> MulAssign for Vec2<T>
     }
 }
 impl<'a, T> Mul for &'a Vec2<T>
-    where T: Mul + Copy
+where
+    T: Mul + Copy,
 {
     type Output = Vec2<T::Output>;
     fn mul(self, rhs: Self) -> Self::Output {
@@ -306,7 +364,8 @@ impl<'a, T> Mul for &'a Vec2<T>
     }
 }
 impl<T> MulAssign for &mut Vec2<T>
-    where T: MulAssign + Copy
+where
+    T: MulAssign + Copy,
 {
     fn mul_assign(&mut self, rhs: Self) {
         self.x *= rhs.x;
