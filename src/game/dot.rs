@@ -55,6 +55,9 @@ impl Dot {
     fn calculate_drag(&self) -> Vec2<f64> {
         let drag_value = self.material.properties().drag;
         let vel_value = self.velocity.pythagorean_theorem();
+        if vel_value == 0. {
+            return Vec2::new(0., 0.);
+        }
         let ratio = drag_value / vel_value;
         self.velocity * -ratio
     }

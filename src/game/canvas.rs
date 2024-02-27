@@ -49,7 +49,12 @@ impl Canvas {
         cursor_position: &PhysicalPosition<f64>,
         window_resolution: &PhysicalSize<u32>,
     ) {
-        self.physical_position_to_game_coordinates(cursor_position, window_resolution);
+        if let Some(coord) = self.physical_position_to_game_coordinates(cursor_position, window_resolution) {
+            let new_dot = Dot::new(Material::Dirt, coord);
+            self.dots.push(new_dot);
+        } else {
+            println!("WARNING! Clicked outside of game space");
+        }
     }
 
     pub fn physical_position_to_game_coordinates(
