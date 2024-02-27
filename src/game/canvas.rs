@@ -65,24 +65,23 @@ impl Canvas {
         let win_ar = win_res.x / win_res.y;
         let can_ar = can_res.x / can_res.y;
 
-        let corrected_win_res = if win_ar > can_ar {
-            Vec2::new(win_res.y / can_ar, 0.)
+        let offset = if win_ar > can_ar {
+            Vec2::new((win_res.x - (win_res.y / can_ar)) / 2., 0.)
         } else {
-            Vec2::new(0., win_res.x * can_ar)
+            Vec2::new(0., (win_res.y - (win_res.x * can_ar)) / 2.)
         };
 
-        let offset = win_res - corrected_win_res;
         let position = Vec2::from(physical_position) - offset;
+        let game_coord = position * can_res / win_res;
 
-        println!("position {:?}", position);
-        if position.x < 0.
-            || position.y < 0.
-            || position.x > corrected_win_res.x
-            || position.y > corrected_win_res.y
+        if game_coord.x < 0.
+            || game_coord.y < 0.
+            || game_coord.x > can_res.x
+            || position.y > can_res.y
         {
             None
         } else {
-            Some(position * can_res / win_res)
+            Some(game_coord)
         }
     }
 
