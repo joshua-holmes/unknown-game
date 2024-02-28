@@ -1,4 +1,4 @@
-use std::time::Duration;
+use std::time::{Duration, Instant, SystemTime, UNIX_EPOCH};
 
 use crate::rendering::glsl_types::Resolution;
 
@@ -9,13 +9,15 @@ pub struct Dot {
     pub material: Material,
     pub position: Vec2<f64>,
     pub velocity: Vec2<f64>,
+    last_offset: Instant,
 }
 impl Dot {
-    pub fn new(material: Material, position: Vec2<f64>) -> Self {
+    pub fn new(material: Material, position: Vec2<f64>, velocity: Vec2<f64>) -> Self {
         Self {
             material,
             position,
-            velocity: Vec2::new(0., 0.),
+            velocity,
+            last_offset: Instant::now(),
         }
     }
 
@@ -25,7 +27,9 @@ impl Dot {
     }
 
     fn set_position(&mut self, resolution: &Resolution, delta_time: &Duration) {
-        let unclamped_position = self.velocity * delta_time.as_secs_f64() + self.position;
+        let offset_from_drag = self.calculate_pos_offset_from_drag();
+        let unclamped_position =
+            self.velocity * delta_time.as_secs_f64() + offset_from_drag + self.position;
         let new_position = unclamped_position.clamp(
             Some(Vec2::new(0., 0.)),
             Some(Vec2::new(
@@ -37,7 +41,7 @@ impl Dot {
     }
 
     fn set_velocity(&mut self, resolution: &Resolution, delta_time: &Duration) {
-        let accel = self.calculate_drag() + GRAVITY;
+        let accel = self.calculate_real_drag() + GRAVITY;
         let mut new_velocity = self.velocity + (accel * delta_time.as_secs_f64());
 
         let floor_collision =
@@ -57,7 +61,8 @@ impl Dot {
         self.velocity = new_velocity;
     }
 
-    fn calculate_drag(&self) -> Vec2<f64> {
+    /// Calculates real change in acceleration from drag property
+    fn calculate_real_drag(&self) -> Vec2<f64> {
         let drag_value = self.material.properties().drag;
         let vel_value = self.velocity.pythagorean_theorem();
         if vel_value == 0. {
@@ -65,5 +70,34 @@ impl Dot {
         }
         let ratio = drag_value / vel_value;
         self.velocity * -ratio
+    }
+
+    // When materials have enough surface area, relative to their weight, they don't fall in a straight line. This is because the air they are falling in can steer them off course by small amounts. This is a simulation of that effect. Every so often, if the material is traveling fast enough, it will experience a slight offset in position (calculated in pixels).
+    fn calculate_pos_offset_from_drag(&mut self) -> Vec2<f64> {
+        // bool that toggles back and forth, seemingly at random each frame
+        let nanos = SystemTime::now()
+            .duration_since(UNIX_EPOCH)
+            .expect("Went backwards in time")
+            .as_nanos();
+
+        // how much drag affects an item is dependent on how much gravity it is experiencing
+        let drag_grav_ratio = self.material.properties().drag / GRAVITY.pythagorean_theorem();
+
+        // max amount of pixels to offset the material by
+        let offset_value = 2. * drag_grav_ratio;
+
+        // materials with less drag need to be traveling faster to have this effect
+        let material_is_light_enough =
+            self.velocity.x >= (1. - drag_grav_ratio) && self.velocity.y >= (1. - drag_grav_ratio);
+
+        // the time required between pixels shifts
+        let offset_delay = Duration::from_secs_f32(0.5);
+
+        if self.last_offset.elapsed() > offset_delay && material_is_light_enough {
+            self.last_offset = Instant::now();
+            Vec2::new_from_direction((nanos % 360) as f64, offset_value)
+        } else {
+            Vec2::new(0., 0.)
+        }
     }
 }

@@ -14,11 +14,11 @@ impl GameState {
         let mut canvas = Canvas::new(INITIAL_CANVAS_RESOLUTION);
 
         // Set some dots for testing
-        canvas.dots.push(Dot {
-            material: Material::Sand,
-            position: Vec2::new(0., 0.),
-            velocity: Vec2::new(100., 0.),
-        });
+        canvas.dots.push(Dot::new(
+            Material::Sand,
+            Vec2::new(0., 0.),
+            Vec2::new(100., 0.),
+        ));
         //
         Self {
             canvas,

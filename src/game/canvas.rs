@@ -59,7 +59,7 @@ impl Canvas {
         if self.last_dot_spawned.elapsed() >= DELAY_BETWEEN_DOTS {
             match self.physical_position_to_game_coordinates(cursor_position, window_resolution) {
                 CoordConversion::Converted(coord) => {
-                    self.dots.push(Dot::new(Material::Dirt, coord));
+                    self.dots.push(Dot::new(Material::Dirt, coord, Vec2::new(0., 0.)));
                     self.last_dot_spawned = Instant::now();
                 },
                 CoordConversion::OutOfBounds => println!("WARNING! Clicked outside of game space"),
