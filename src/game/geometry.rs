@@ -96,10 +96,10 @@ impl Vec2<f64> {
         (self.x.powi(2) + self.y.powi(2)).sqrt()
     }
 
-    pub fn new_from_direction(direction_in_degrees: f64, value: f64) -> Self {
+    pub fn new_from_direction(direction_in_degrees: f64, length: f64) -> Self {
         Vec2 {
-            x: direction_in_degrees.to_radians().cos() * value,
-            y: direction_in_degrees.to_radians().sin() * value,
+            x: direction_in_degrees.to_radians().cos() * length,
+            y: direction_in_degrees.to_radians().sin() * length,
         }
     }
 }

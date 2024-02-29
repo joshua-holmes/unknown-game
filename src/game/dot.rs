@@ -72,7 +72,7 @@ impl Dot {
         self.velocity * -ratio
     }
 
-    // When materials have enough surface area, relative to their weight, they don't fall in a straight line. This is because the air they are falling in can steer them off course by small amounts. This is a simulation of that effect. Every so often, if the material is traveling fast enough, it will experience a slight offset in position (calculated in pixels).
+    /// When materials have enough surface area, relative to their weight, they don't fall in a straight line. This is because the air they are falling in can steer them off course by small amounts. This is a simulation of that effect. Every so often, if the material is traveling fast enough, it will experience a slight offset in position (calculated in pixels).
     fn calculate_pos_offset_from_drag(&mut self) -> Vec2<f64> {
         // how much drag affects an item is dependent on how much gravity it is experiencing
         let drag_grav_ratio = self.material.properties().drag / GRAVITY.pythagorean_theorem();
