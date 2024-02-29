@@ -1,6 +1,6 @@
 use std::time::{Duration, Instant, SystemTime, UNIX_EPOCH};
 
-use crate::rendering::glsl_types::Resolution;
+use crate::{rendering::glsl_types::Resolution, game::rng};
 
 use super::{geometry::Vec2, material::Material, GRAVITY};
 
@@ -74,17 +74,14 @@ impl Dot {
 
     // When materials have enough surface area, relative to their weight, they don't fall in a straight line. This is because the air they are falling in can steer them off course by small amounts. This is a simulation of that effect. Every so often, if the material is traveling fast enough, it will experience a slight offset in position (calculated in pixels).
     fn calculate_pos_offset_from_drag(&mut self) -> Vec2<f64> {
-        // bool that toggles back and forth, seemingly at random each frame
-        let nanos = SystemTime::now()
-            .duration_since(UNIX_EPOCH)
-            .expect("Went backwards in time")
-            .as_nanos();
-
         // how much drag affects an item is dependent on how much gravity it is experiencing
         let drag_grav_ratio = self.material.properties().drag / GRAVITY.pythagorean_theorem();
 
         // max amount of pixels to offset the material by
-        let offset_value = 2. * drag_grav_ratio;
+        let max_offset_value = 2. * drag_grav_ratio;
+
+        // actual amount to offset material by, random between 0 and `max_offset_value`
+        let offset_value = rng::rand_f64((0.)..max_offset_value);
 
         // materials with less drag need to be traveling faster to have this effect
         let material_is_light_enough =
@@ -95,7 +92,7 @@ impl Dot {
 
         if self.last_offset.elapsed() > offset_delay && material_is_light_enough {
             self.last_offset = Instant::now();
-            Vec2::new_from_direction((nanos % 360) as f64, offset_value)
+            Vec2::new_from_direction(rng::rand_f64((0.)..360.), offset_value)
         } else {
             Vec2::new(0., 0.)
         }
