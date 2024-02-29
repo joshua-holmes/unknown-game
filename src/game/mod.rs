@@ -9,6 +9,7 @@ pub mod dot;
 pub mod geometry;
 pub mod material;
 pub mod state;
+pub mod rng;
 
 // canvas resolution is the size of the game world in pixels
 const INITIAL_CANVAS_RESOLUTION: PhysicalSize<u32> = PhysicalSize::new(500, 500);
