@@ -1,7 +1,7 @@
 use std::sync::Arc;
 
 use crate::{
-    game::canvas::Canvas,
+    game::Game,
     game::geometry::{Model, Triangle},
 };
 use vulkano::{
@@ -550,7 +550,7 @@ impl RenderEngine {
         self.command_buffers = new_command_buffers;
     }
 
-    pub fn display_next_frame(&mut self, canvas: &mut Canvas, window: Arc<Window>) {
+    pub fn display_next_frame(&mut self, game: &Game, window: Arc<Window>) {
         // if set to true any time during this function call, swapchain will
         // be recreated and this function will be called again
         let mut recreate_swapchain_after_presentation = false;
@@ -590,7 +590,7 @@ impl RenderEngine {
             .write()
             .unwrap()
             .iter_mut()
-            .zip(canvas.iter_materials())
+            .zip(game.iter_materials())
         {
             *mat = new_mat;
         }
@@ -634,11 +634,11 @@ impl RenderEngine {
 
         if recreate_swapchain_after_presentation {
             self.recreate_swapchain(window.inner_size());
-            self.display_next_frame(canvas, window);
+            self.display_next_frame(game, window);
         }
     }
 
-    pub fn new(event_loop: &EventLoop<()>, window: Arc<Window>, canvas: &Canvas) -> Self {
+    pub fn new(event_loop: &EventLoop<()>, window: Arc<Window>, game: &Game) -> Self {
         // init vulkan and window
         let (vk_instance, vk_surface) = Self::init_vulkan_and_window(event_loop, window.clone());
 
@@ -668,7 +668,7 @@ impl RenderEngine {
 
         // canvas setup
         let canvas_buffer =
-            Self::create_canvas_buffer(memory_allocator.clone(), canvas.iter_materials().collect());
+            Self::create_canvas_buffer(memory_allocator.clone(), game.iter_materials().collect());
 
         // resolutions_setup
         let window_res_buffer = Self::create_resolution_buffer(
@@ -676,7 +676,7 @@ impl RenderEngine {
             Resolution::from(window.inner_size()),
         );
         let canvas_res_buffer =
-            Self::create_resolution_buffer(memory_allocator.clone(), canvas.resolution());
+            Self::create_resolution_buffer(memory_allocator.clone(), game.resolution);
 
         // setup render pass
         let render_pass = Self::create_render_pass(device.clone(), swapchain.clone());

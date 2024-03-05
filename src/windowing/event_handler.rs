@@ -15,7 +15,7 @@ pub fn handle_event(
     control_flow: &mut ControlFlow,
     window: Arc<Window>,
     render_engine: &mut RenderEngine,
-    main_game_obj: &mut Game,
+    game: &mut Game,
     window_state: &mut WindowState,
 ) {
     match event {
@@ -51,14 +51,15 @@ pub fn handle_event(
         }
         Event::MainEventsCleared => {
             if let ElementState::Pressed = window_state.left_mouse_btn {
-                main_game_obj.canvas.spawn_dots(
+                game.spawn_dots(
                     &window_state.cursor_position,
                     &window_state.window.inner_size(),
                 );
             }
-            main_game_obj.set_time();
-            main_game_obj.canvas.set_next_frame(&main_game_obj.delta_time);
-            render_engine.display_next_frame(&mut main_game_obj.canvas, window.clone());
+            game.set_time();
+            let delta_time = game.delta_time;
+            game.set_next_frame(&delta_time);
+            render_engine.display_next_frame(&game, window.clone());
         }
         _ => (),
     }

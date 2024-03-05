@@ -8,7 +8,7 @@ pub struct Vertex {
     pub position: [f32; 2],
 }
 
-#[derive(BufferContents, Clone, Debug)]
+#[derive(BufferContents, Clone, Copy, Debug)]
 #[repr(C)]
 pub struct Resolution {
     pub width: i32,
