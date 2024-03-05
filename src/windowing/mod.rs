@@ -7,13 +7,13 @@ use crate::rendering::render_engine::RenderEngine;
 
 use self::state::WindowState;
 
-use super::game::state::GameState;
+use super::game::Game;
 
 pub fn run_game_loop(
     event_loop: EventLoop<()>,
     mut window_state: WindowState,
     mut render_engine: RenderEngine,
-    mut game_state: GameState,
+    mut main_game_obj: Game,
 ) {
     event_loop.run(move |event, _, control_flow| {
         control_flow.set_poll();
@@ -22,7 +22,7 @@ pub fn run_game_loop(
             control_flow,
             window_state.window.clone(),
             &mut render_engine,
-            &mut game_state,
+            &mut main_game_obj,
             &mut window_state,
         );
     });

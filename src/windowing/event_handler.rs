@@ -6,7 +6,7 @@ use winit::{
     window::Window,
 };
 
-use crate::{game::state::GameState, rendering::render_engine::RenderEngine};
+use crate::{game::Game, rendering::render_engine::RenderEngine};
 
 use super::state::WindowState;
 
@@ -15,7 +15,7 @@ pub fn handle_event(
     control_flow: &mut ControlFlow,
     window: Arc<Window>,
     render_engine: &mut RenderEngine,
-    game_state: &mut GameState,
+    main_game_obj: &mut Game,
     window_state: &mut WindowState,
 ) {
     match event {
@@ -51,14 +51,14 @@ pub fn handle_event(
         }
         Event::MainEventsCleared => {
             if let ElementState::Pressed = window_state.left_mouse_btn {
-                game_state.canvas.spawn_dots(
+                main_game_obj.canvas.spawn_dots(
                     &window_state.cursor_position,
                     &window_state.window.inner_size(),
                 );
             }
-            game_state.set_time();
-            game_state.canvas.set_next_frame(&game_state.delta_time);
-            render_engine.display_next_frame(&mut game_state.canvas, window.clone());
+            main_game_obj.set_time();
+            main_game_obj.canvas.set_next_frame(&main_game_obj.delta_time);
+            render_engine.display_next_frame(&mut main_game_obj.canvas, window.clone());
         }
         _ => (),
     }

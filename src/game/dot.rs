@@ -1,4 +1,4 @@
-use std::time::{Duration, Instant, SystemTime, UNIX_EPOCH};
+use std::time::{Duration, Instant};
 
 use crate::{rendering::glsl_types::Resolution, game::rng};
 

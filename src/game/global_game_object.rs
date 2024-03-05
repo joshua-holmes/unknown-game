@@ -4,12 +4,12 @@ use super::{
     canvas::Canvas, dot::Dot, geometry::Vec2, material::Material, INITIAL_CANVAS_RESOLUTION,
 };
 
-pub struct GameState {
+pub struct Game {
     pub canvas: Canvas,
     pub delta_time: Duration,
     last_frame_time: Instant,
 }
-impl GameState {
+impl Game {
     pub fn new() -> Self {
         let mut canvas = Canvas::new(INITIAL_CANVAS_RESOLUTION);
 
