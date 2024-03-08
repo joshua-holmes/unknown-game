@@ -4,7 +4,7 @@ use crate::{rendering::glsl_types::Resolution, game::rng};
 
 use super::{geometry::Vec2, material::Material, GRAVITY};
 
-#[derive(Debug)]
+#[derive(Debug, Clone, Copy)]
 pub struct Dot {
     pub material: Material,
     pub position: Vec2<f64>,
