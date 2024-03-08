@@ -51,7 +51,7 @@ impl Game {
         self.last_frame_time = now;
     }
 
-    pub fn iter_materials<'a>(&'a self) -> impl Iterator<Item = u8> + 'a {
+    pub fn iter_materials_as_bytes<'a>(&'a self) -> impl Iterator<Item = u8> + 'a {
         self.canvas.iter().flatten().map(|m| *m as u8)
     }
 
