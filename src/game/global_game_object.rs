@@ -72,7 +72,7 @@ impl Game {
                 CoordConversion::Converted(coord) => {
                     if self.canvas[coord.y.round() as usize][coord.x.round() as usize].is_none() {
                         self.palette
-                            .push(Dot::new(self.palette.len(), Material::Sand, coord, Vec2::new(0., 0.)));
+                            .push(Dot::new(Material::Sand, coord, Vec2::new(0., 0.)));
                         self.last_dot_spawned = Instant::now();
                     }
                 }
