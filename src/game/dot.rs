@@ -2,18 +2,20 @@ use std::time::{Duration, Instant};
 
 use crate::{rendering::glsl_types::Resolution, game::rng};
 
-use super::{geometry::Vec2, material::Material, GRAVITY};
+use super::{geometry::Vec2, material::Material, GRAVITY, id_generator::{Id, IdGenerator}};
 
 #[derive(Debug, Clone, Copy)]
 pub struct Dot {
+    pub id: Id,
     pub material: Material,
     pub position: Vec2<f64>,
     pub velocity: Vec2<f64>,
     last_offset: Instant,
 }
 impl Dot {
-    pub fn new(material: Material, position: Vec2<f64>, velocity: Vec2<f64>) -> Self {
+    pub fn new(dot_id_generator: &mut IdGenerator, material: Material, position: Vec2<f64>, velocity: Vec2<f64>) -> Self {
         Self {
+            id: dot_id_generator.new_id().expect("Ran out of ids"),
             material,
             position,
             velocity,

@@ -1,21 +1,29 @@
-use std::time::{Duration, Instant};
+use std::{
+    collections::HashMap,
+    time::{Duration, Instant},
+};
 
 use winit::dpi::{PhysicalPosition, PhysicalSize};
 
 use crate::rendering::glsl_types::Resolution;
 
 use super::{
-    dot::Dot, enums::CoordConversion, geometry::Vec2, material::Material, DELAY_BETWEEN_DOTS,
-    INITIAL_CANVAS_RESOLUTION,
+    dot::Dot,
+    enums::CoordConversion,
+    geometry::Vec2,
+    id_generator::{Id, IdGenerator},
+    material::Material,
+    DELAY_BETWEEN_DOTS, INITIAL_CANVAS_RESOLUTION,
 };
 
 pub struct Game {
     pub delta_time: Duration,
     pub canvas: Vec<Vec<Option<Dot>>>,
-    pub palette: Vec<Dot>,
+    pub palette: HashMap<Id, Dot>,
     pub last_dot_spawned: Instant,
     pub resolution: Resolution,
     last_frame_time: Instant,
+    dot_id_generator: IdGenerator,
 }
 impl Game {
     pub fn new() -> Self {
@@ -24,13 +32,18 @@ impl Game {
             .map(|_| (0..width).map(|_| None).collect())
             .collect();
 
-        // Set some dots for testing
-        let mut palette = Vec::with_capacity((height * width) as usize);
-        palette.push(Dot::new(
+        let mut dot_id_generator = IdGenerator::new();
+
+        let dot = Dot::new(
+            &mut dot_id_generator,
             Material::Sand,
             Vec2::new(0., 0.),
             Vec2::new(100., 0.),
-        ));
+        );
+
+        // Set some dots for testing
+        let mut palette = HashMap::with_capacity((height * width) as usize);
+        palette.insert(dot.id, dot);
 
         Self {
             canvas,
@@ -39,6 +52,7 @@ impl Game {
             delta_time: Duration::ZERO,
             last_frame_time: Instant::now(),
             last_dot_spawned: Instant::now(),
+            dot_id_generator,
         }
     }
 
@@ -56,7 +70,7 @@ impl Game {
     }
 
     pub fn set_next_frame(&mut self, delta_time: &Duration) {
-        for dot in self.palette.iter_mut() {
+        for dot in self.palette.values_mut() {
             dot.set_next_frame(&self.resolution, delta_time)
         }
         self.write_dots_to_grid();
@@ -71,8 +85,15 @@ impl Game {
             match self.physical_position_to_game_coordinates(cursor_position, window_resolution) {
                 CoordConversion::Converted(coord) => {
                     if self.canvas[coord.y.round() as usize][coord.x.round() as usize].is_none() {
-                        self.palette
-                            .push(Dot::new(Material::Sand, coord, Vec2::new(0., 0.)));
+                        let new_dot = Dot::new(
+                            &mut self.dot_id_generator,
+                            Material::Sand,
+                            coord,
+                            Vec2::new(0., 0.),
+                        );
+                        if let Some(old_dot) = self.palette.insert(new_dot.id, new_dot) {
+                            panic!("Dot already exists in palette. Old dot:\n{:?}\nwas replaced with new dot:\n{:?}", old_dot, new_dot);
+                        }
                         self.last_dot_spawned = Instant::now();
                     }
                 }
@@ -122,7 +143,7 @@ impl Game {
 
     fn write_dots_to_grid(&mut self) {
         self.clear_canvas();
-        for dot in self.palette.iter() {
+        for dot in self.palette.values_mut() {
             let row = dot.position.y.clone().round() as usize;
             let col = dot.position.x.clone().round() as usize;
             self.canvas[row][col] = Some(*dot);
