@@ -15,6 +15,7 @@ use super::{
 pub struct DotCollisionMod {
     pub id: Id,
     pub delta_velocity: Vec2<f64>,
+    pub next_position: Option<Vec2<f64>>,
 }
 
 #[derive(Debug, Clone, Copy)]
@@ -23,7 +24,7 @@ pub struct Dot {
     pub material: Material,
     pub velocity: Vec2<f64>,
     pub position: Vec2<f64>,
-    next_position: Option<Vec2<f64>>,
+    pub next_position: Option<Vec2<f64>>,
     last_offset: Instant,
 }
 impl Dot {
@@ -44,12 +45,9 @@ impl Dot {
     }
 
     pub fn check_for_dot_collision(
-        &mut self,
-        resolution: &Resolution,
-        delta_time: &Duration,
+        &self,
         canvas: &mut Vec<Vec<Option<Dot>>>,
     ) -> Option<(DotCollisionMod, DotCollisionMod)> {
-        self.set_next_position(resolution, delta_time);
         let next_pos = self.next_position.unwrap();
         if let Some(ref canvas_dot) = canvas[next_pos.y.round() as usize][next_pos.x.round() as usize] {
             if self.id != canvas_dot.id {
@@ -62,18 +60,19 @@ impl Dot {
         }
     }
 
-    fn handle_dot_collision(&mut self, canvas_dot: &Dot) -> (DotCollisionMod, DotCollisionMod) {
+    fn handle_dot_collision(&self, canvas_dot: &Dot) -> (DotCollisionMod, DotCollisionMod) {
         let diff = canvas_dot.velocity - self.velocity;
         let diff_after_friction = diff * (1. - FRICTION);
-        self.next_position = Some(self.position);
         (
             DotCollisionMod {
                 id: self.id,
                 delta_velocity: diff_after_friction,
+                next_position: Some(self.position),
             },
             DotCollisionMod {
                 id: canvas_dot.id,
                 delta_velocity: diff_after_friction.to_negative(),
+                next_position: None
             }
         )
     }
@@ -85,7 +84,7 @@ impl Dot {
         self.set_velocity(resolution, delta_time);
     }
 
-    fn set_next_position(&mut self, resolution: &Resolution, delta_time: &Duration) {
+    pub fn set_next_position(&mut self, resolution: &Resolution, delta_time: &Duration) {
         let offset_from_drag = self.calculate_pos_offset_from_drag();
         let unclamped_position =
             self.velocity * delta_time.as_secs_f64() + offset_from_drag + self.position;

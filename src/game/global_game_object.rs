@@ -79,7 +79,8 @@ impl Game {
     pub fn set_next_frame(&mut self, delta_time: &Duration) {
         let mut dots_to_modify = Vec::new();
         for dot in self.palette.values_mut() {
-            let collision_check = dot.check_for_dot_collision(&self.resolution, delta_time, &mut self.canvas);
+            dot.set_next_position(&self.resolution, &self.delta_time);
+            let collision_check = dot.check_for_dot_collision(&mut self.canvas);
             if let Some(collided_dots) = collision_check {
                 dots_to_modify.push(collided_dots.0);
                 dots_to_modify.push(collided_dots.1);
@@ -89,6 +90,9 @@ impl Game {
         for dot_to_modify in dots_to_modify {
             let dot = self.palette.get_mut(&dot_to_modify.id).unwrap();
             dot.velocity += dot_to_modify.delta_velocity;
+            if let Some(next_pos) = dot_to_modify.next_position {
+                dot.next_position = Some(next_pos);
+            }
         }
 
         for dot in self.palette.values_mut() {
