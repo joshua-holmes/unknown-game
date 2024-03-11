@@ -1,34 +1,91 @@
-use std::time::{Duration, Instant};
+use std::{
+    collections::HashMap,
+    time::{Duration, Instant},
+};
 
-use crate::{rendering::glsl_types::Resolution, game::rng};
+use crate::{game::rng, rendering::glsl_types::Resolution};
 
-use super::{geometry::Vec2, material::Material, GRAVITY, id_generator::{Id, IdGenerator}};
+use super::{
+    geometry::Vec2,
+    id_generator::{Id, IdGenerator},
+    material::Material,
+    GRAVITY, FRICTION,
+};
+
+pub struct DotCollisionMod {
+    pub id: Id,
+    pub delta_velocity: Vec2<f64>,
+}
 
 #[derive(Debug, Clone, Copy)]
 pub struct Dot {
     pub id: Id,
     pub material: Material,
-    pub position: Vec2<f64>,
     pub velocity: Vec2<f64>,
+    pub position: Vec2<f64>,
+    next_position: Option<Vec2<f64>>,
     last_offset: Instant,
 }
 impl Dot {
-    pub fn new(dot_id_generator: &mut IdGenerator, material: Material, position: Vec2<f64>, velocity: Vec2<f64>) -> Self {
+    pub fn new(
+        dot_id_generator: &mut IdGenerator,
+        material: Material,
+        position: Vec2<f64>,
+        velocity: Vec2<f64>,
+    ) -> Self {
         Self {
             id: dot_id_generator.new_id().expect("Ran out of ids"),
             material,
-            position,
             velocity,
+            position,
+            next_position: None,
             last_offset: Instant::now(),
         }
     }
 
+    pub fn check_for_dot_collision(
+        &mut self,
+        resolution: &Resolution,
+        delta_time: &Duration,
+        canvas: &mut Vec<Vec<Option<Dot>>>,
+    ) -> Option<(DotCollisionMod, DotCollisionMod)> {
+        self.set_next_position(resolution, delta_time);
+        let next_pos = self.next_position.unwrap();
+        if let Some(ref canvas_dot) = canvas[next_pos.y.round() as usize][next_pos.x.round() as usize] {
+            if self.id != canvas_dot.id {
+                Some(self.handle_dot_collision(canvas_dot))
+            } else {
+                None
+            }
+        } else {
+            None
+        }
+    }
+
+    fn handle_dot_collision(&mut self, canvas_dot: &Dot) -> (DotCollisionMod, DotCollisionMod) {
+        let diff = canvas_dot.velocity - self.velocity;
+        let diff_after_friction = diff * (1. - FRICTION);
+        self.next_position = Some(self.position);
+        (
+            DotCollisionMod {
+                id: self.id,
+                delta_velocity: diff_after_friction,
+            },
+            DotCollisionMod {
+                id: canvas_dot.id,
+                delta_velocity: diff_after_friction.to_negative(),
+            }
+        )
+    }
+
     pub fn set_next_frame(&mut self, resolution: &Resolution, delta_time: &Duration) {
-        self.set_position(resolution, delta_time);
+        self.position = self.next_position.take().expect(
+            "Next position not set! Don't forget to call `Dot::handle_dot_collision` method",
+        );
         self.set_velocity(resolution, delta_time);
     }
 
-    fn set_position(&mut self, resolution: &Resolution, delta_time: &Duration) {
+    fn set_next_position(&mut self, resolution: &Resolution, delta_time: &Duration) {
         let offset_from_drag = self.calculate_pos_offset_from_drag();
         let unclamped_position =
             self.velocity * delta_time.as_secs_f64() + offset_from_drag + self.position;
@@ -39,7 +96,7 @@ impl Dot {
                 (resolution.height - 1) as f64,
             )),
         );
-        self.position = new_position;
+        self.next_position = Some(new_position);
     }
 
     fn set_velocity(&mut self, resolution: &Resolution, delta_time: &Duration) {

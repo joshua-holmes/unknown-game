@@ -102,6 +102,10 @@ impl Vec2<f64> {
             y: direction_in_degrees.to_radians().sin() * length,
         }
     }
+
+    pub fn to_negative(self) -> Self {
+        Self::new(-self.x, -self.y)
+    }
 }
 impl<T> From<PhysicalPosition<T>> for Vec2<T> {
     fn from(value: PhysicalPosition<T>) -> Self {

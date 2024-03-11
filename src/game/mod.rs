@@ -25,3 +25,7 @@ const GRAVITY: Vec2<f64> = Vec2 { x: 0., y: 40. };
 
 // while holding mouse button down, delay between pixels that get spawned
 const DELAY_BETWEEN_DOTS: Duration = Duration::from_millis(50);
+
+// percentage of energy lost due to friction when 2 dots collide
+const FRICTION: f64 = 0.1;
+
