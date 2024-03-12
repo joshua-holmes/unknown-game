@@ -89,7 +89,7 @@ impl Game {
 
         for dot_to_modify in dots_to_modify {
             let dot = self.palette.get_mut(&dot_to_modify.id).unwrap();
-            dot.velocity += dot_to_modify.delta_velocity;
+            dot.velocity = dot_to_modify.next_velocity;
             if let Some(next_pos) = dot_to_modify.next_position {
                 dot.next_position = Some(next_pos);
             }

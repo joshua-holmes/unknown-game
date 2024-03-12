@@ -14,7 +14,7 @@ use super::{
 
 pub struct DotCollisionMod {
     pub id: Id,
-    pub delta_velocity: Vec2<f64>,
+    pub next_velocity: Vec2<f64>,
     pub next_position: Option<Vec2<f64>>,
 }
 
@@ -60,18 +60,17 @@ impl Dot {
         }
     }
 
-    fn handle_dot_collision(&self, canvas_dot: &Dot) -> (DotCollisionMod, DotCollisionMod) {
-        let diff = canvas_dot.velocity - self.velocity;
-        let diff_after_friction = diff * (1. - FRICTION);
+    fn handle_dot_collision(&self, target_dot: &Dot) -> (DotCollisionMod, DotCollisionMod) {
+        let diff = self.velocity - target_dot.velocity;
         (
             DotCollisionMod {
                 id: self.id,
-                delta_velocity: diff_after_friction,
+                next_velocity: (self.velocity - diff) * (1. - FRICTION),
                 next_position: Some(self.position),
             },
             DotCollisionMod {
-                id: canvas_dot.id,
-                delta_velocity: diff_after_friction.to_negative(),
+                id: target_dot.id,
+                next_velocity: (target_dot.velocity - diff.to_negative()) * (1. - FRICTION),
                 next_position: None
             }
         )
