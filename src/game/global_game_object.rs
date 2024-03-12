@@ -38,13 +38,13 @@ impl Game {
             &mut dot_id_generator,
             Material::Sand,
             Vec2::new(250., 0.),
-            Vec2::new(0., 30.),
+            Vec2::new(0., 100.),
         );
         let dot2 = Dot::new(
             &mut dot_id_generator,
             Material::Dirt,
-            Vec2::new(250., 30.),
-            Vec2::new(0., 10.),
+            Vec2::new(250., 130.),
+            Vec2::new(0., 50.),
         );
 
         // Set some dots for testing

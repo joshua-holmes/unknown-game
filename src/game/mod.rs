@@ -21,7 +21,7 @@ const INITIAL_CANVAS_RESOLUTION: Resolution = Resolution {
 };
 
 // gravity of every material in the game in pixels per second ^2
-const GRAVITY: Vec2<f64> = Vec2 { x: 0., y: 40. };
+const GRAVITY: Vec2<f64> = Vec2 { x: 0., y: 0. };
 
 // while holding mouse button down, delay between pixels that get spawned
 const DELAY_BETWEEN_DOTS: Duration = Duration::from_millis(50);
