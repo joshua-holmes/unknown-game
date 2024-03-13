@@ -36,21 +36,27 @@ impl Game {
 
         let dot = Dot::new(
             &mut dot_id_generator,
-            Material::Sand,
-            Vec2::new(250., 0.),
-            Vec2::new(0., 100.),
+            Material::Dirt,
+            Vec2::new(250., 250.),
+            Vec2::new(0., 0.),
         );
         let dot2 = Dot::new(
             &mut dot_id_generator,
-            Material::Dirt,
-            Vec2::new(250., 130.),
-            Vec2::new(0., 50.),
+            Material::Sand,
+            Vec2::new(250., 0.),
+            Vec2::new(0., 500.),
         );
         let dot3 = Dot::new(
             &mut dot_id_generator,
             Material::Dirt,
-            Vec2::new(250., 500.),
+            Vec2::new(350., 500.),
             Vec2::new(0., 0.),
+        );
+        let dot4 = Dot::new(
+            &mut dot_id_generator,
+            Material::Sand,
+            Vec2::new(350., 0.),
+            Vec2::new(0., 100.),
         );
 
         // Set some dots for testing
@@ -58,6 +64,7 @@ impl Game {
         palette.insert(dot.id, dot);
         palette.insert(dot2.id, dot2);
         palette.insert(dot3.id, dot3);
+        palette.insert(dot4.id, dot4);
 
         Self {
             canvas,
