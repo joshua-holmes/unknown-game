@@ -76,14 +76,13 @@ impl Dot {
         )
     }
 
-    pub fn set_next_frame(&mut self, resolution: &Resolution, delta_time: &Duration) {
+    pub fn set_next_position(&mut self) {
         self.position = self.next_position.take().expect(
             "Next position not set! Don't forget to call `Dot::handle_dot_collision` method",
         );
-        self.set_velocity(resolution, delta_time);
     }
 
-    pub fn set_next_position(&mut self, resolution: &Resolution, delta_time: &Duration) {
+    pub fn find_next_position(&mut self, resolution: &Resolution, delta_time: &Duration) {
         let offset_from_drag = self.calculate_pos_offset_from_drag();
         let unclamped_position =
             self.velocity * delta_time.as_secs_f64() + offset_from_drag + self.position;
@@ -97,7 +96,7 @@ impl Dot {
         self.next_position = Some(new_position);
     }
 
-    fn set_velocity(&mut self, resolution: &Resolution, delta_time: &Duration) {
+    pub fn set_velocity(&mut self, resolution: &Resolution, delta_time: &Duration) {
         let accel = self.calculate_real_drag() + GRAVITY;
         let mut new_velocity = self.velocity + (accel * delta_time.as_secs_f64());
 

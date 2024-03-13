@@ -46,11 +46,18 @@ impl Game {
             Vec2::new(250., 130.),
             Vec2::new(0., 50.),
         );
+        let dot3 = Dot::new(
+            &mut dot_id_generator,
+            Material::Dirt,
+            Vec2::new(250., 500.),
+            Vec2::new(0., 0.),
+        );
 
         // Set some dots for testing
         let mut palette = HashMap::with_capacity((height * width) as usize);
         palette.insert(dot.id, dot);
         palette.insert(dot2.id, dot2);
+        palette.insert(dot3.id, dot3);
 
         Self {
             canvas,
@@ -77,9 +84,13 @@ impl Game {
     }
 
     pub fn set_next_frame(&mut self, delta_time: &Duration) {
+        for dot in self.palette.values_mut() {
+            dot.set_velocity(&self.resolution, delta_time);
+        }
+
         let mut dots_to_modify = Vec::new();
         for dot in self.palette.values_mut() {
-            dot.set_next_position(&self.resolution, &self.delta_time);
+            dot.find_next_position(&self.resolution, &self.delta_time);
             let collision_check = dot.check_for_dot_collision(&mut self.canvas);
             if let Some(collided_dots) = collision_check {
                 dots_to_modify.push(collided_dots.0);
@@ -96,7 +107,7 @@ impl Game {
         }
 
         for dot in self.palette.values_mut() {
-            dot.set_next_frame(&self.resolution, delta_time);
+            dot.set_next_position();
         }
         self.write_dots_to_grid();
     }
