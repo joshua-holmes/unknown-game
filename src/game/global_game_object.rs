@@ -42,7 +42,7 @@ impl Game {
             &mut dot_id_generator,
             Material::Sand,
             Vec2::new(250., 0.),
-            Vec2::new(0., 500.),
+            Vec2::new(0., 499.),
         );
         let dot3 = Dot::new(
             &mut dot_id_generator,
@@ -89,10 +89,12 @@ impl Game {
         let mut dots_to_modify = Vec::new();
         for dot in self.palette.values_mut() {
             dot.find_next_position(&self.resolution, &self.delta_time);
-            let collision_check = dot.check_for_dot_collision(&mut self.canvas);
-            if let Some(collided_dots) = collision_check {
-                dots_to_modify.push(collided_dots.0);
-                dots_to_modify.push(collided_dots.1);
+            if dot.next_position.unwrap().to_rounded_usize() != dot.position.to_rounded_usize() {
+                let collision_check = dot.check_for_dot_collision(&mut self.canvas);
+                if let Some(collided_dots) = collision_check {
+                    dots_to_modify.push(collided_dots.this);
+                    dots_to_modify.push(collided_dots.other);
+                }
             }
         }
 

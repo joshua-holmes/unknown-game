@@ -9,6 +9,11 @@ use super::{
     GRAVITY, FRICTION, canvas::Canvas,
 };
 
+pub struct DotCollisionMods {
+    pub this: DotCollisionMod,
+    pub other: DotCollisionMod,
+}
+
 pub struct DotCollisionMod {
     pub id: Id,
     pub next_velocity: Vec2<f64>,
@@ -44,33 +49,36 @@ impl Dot {
     pub fn check_for_dot_collision(
         &self,
         canvas: &mut Canvas,
-    ) -> Option<(DotCollisionMod, DotCollisionMod)> {
+    ) -> Option<DotCollisionMods> {
         let next_pos = self.next_position.unwrap();
-        if let Some(ref canvas_dot) = canvas.get(next_pos.to_rounded_usize()).unwrap() {
-            if self.id != canvas_dot.id {
-                Some(self.handle_dot_collision(canvas_dot))
+        let ray = canvas.cast_ray(self.position, next_pos);
+        let mut prev_coord = self.position.to_rounded_usize();
+        for point in ray {
+            if let Some(dot) = point.dot {
+                if self.id != dot.id {
+                    return Some(self.handle_dot_collision(&dot, prev_coord));
+                }
             } else {
-                None
+                prev_coord = point.coord;
             }
-        } else {
-            None
         }
+        None
     }
 
-    fn handle_dot_collision(&self, target_dot: &Dot) -> (DotCollisionMod, DotCollisionMod) {
+    fn handle_dot_collision(&self, target_dot: &Dot, prev_coord: Vec2<usize>) -> DotCollisionMods {
         let diff = self.velocity - target_dot.velocity;
-        (
-            DotCollisionMod {
+        DotCollisionMods {
+            this: DotCollisionMod {
                 id: self.id,
                 next_velocity: (self.velocity - diff) * (1. - FRICTION),
-                next_position: Some(self.position),
+                next_position: Some(prev_coord.into_f64()),
             },
-            DotCollisionMod {
+            other: DotCollisionMod {
                 id: target_dot.id,
                 next_velocity: (target_dot.velocity - diff.to_negative()) * (1. - FRICTION),
                 next_position: None
             }
-        )
+        }
     }
 
     pub fn set_next_position(&mut self) {
