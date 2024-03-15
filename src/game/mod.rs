@@ -10,6 +10,7 @@ pub mod material;
 pub mod rng;
 pub mod enums;
 pub mod id_generator;
+pub mod ray_cast;
 mod global_game_object;
 
 pub use global_game_object::Game;
