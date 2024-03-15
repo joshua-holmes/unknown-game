@@ -1,4 +1,4 @@
-use std::ops::{Add, AddAssign, Div, DivAssign, Mul, MulAssign, Sub, SubAssign};
+use std::{ops::{Add, AddAssign, Div, DivAssign, Mul, MulAssign, Sub, SubAssign}, hash::Hash};
 
 use winit::dpi::{PhysicalPosition, PhysicalSize};
 
@@ -49,7 +49,7 @@ impl Model {
     }
 }
 
-#[derive(Clone, Copy, Debug)]
+#[derive(Clone, Copy, Debug, Hash, PartialEq, Eq)]
 pub struct Vec2<T> {
     pub x: T,
     pub y: T,
@@ -105,6 +105,10 @@ impl Vec2<f64> {
 
     pub fn to_negative(self) -> Self {
         Self::new(-self.x, -self.y)
+    }
+
+    pub fn abs(&self) -> Self {
+        Self::new(self.x.abs(), self.y.abs())
     }
 }
 impl<T> From<PhysicalPosition<T>> for Vec2<T> {
