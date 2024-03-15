@@ -110,6 +110,10 @@ impl Vec2<f64> {
     pub fn abs(&self) -> Self {
         Self::new(self.x.abs(), self.y.abs())
     }
+
+    pub fn to_rounded_usize(&self) -> Vec2<usize> {
+        Vec2::new(self.x.round() as usize, self.y.round() as usize)
+    }
 }
 impl<T> From<PhysicalPosition<T>> for Vec2<T> {
     fn from(value: PhysicalPosition<T>) -> Self {

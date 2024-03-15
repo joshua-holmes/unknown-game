@@ -6,7 +6,7 @@ use super::{
     geometry::Vec2,
     id_generator::{Id, IdGenerator},
     material::Material,
-    GRAVITY, FRICTION, global_game_object::Canvas,
+    GRAVITY, FRICTION, canvas::Canvas,
 };
 
 pub struct DotCollisionMod {
@@ -46,7 +46,7 @@ impl Dot {
         canvas: &mut Canvas,
     ) -> Option<(DotCollisionMod, DotCollisionMod)> {
         let next_pos = self.next_position.unwrap();
-        if let Some(ref canvas_dot) = canvas[next_pos.y.round() as usize][next_pos.x.round() as usize] {
+        if let Some(ref canvas_dot) = canvas.get(next_pos.to_rounded_usize()).unwrap() {
             if self.id != canvas_dot.id {
                 Some(self.handle_dot_collision(canvas_dot))
             } else {

@@ -13,10 +13,8 @@ use super::{
     geometry::Vec2,
     id_generator::{Id, IdGenerator},
     material::Material,
-    DELAY_BETWEEN_DOTS, INITIAL_CANVAS_RESOLUTION,
+    DELAY_BETWEEN_DOTS, INITIAL_CANVAS_RESOLUTION, canvas::Canvas,
 };
-
-pub type Canvas = Vec<Vec<Option<Dot>>>;
 
 pub struct Game {
     pub delta_time: Duration,
@@ -30,9 +28,7 @@ pub struct Game {
 impl Game {
     pub fn new() -> Self {
         let Resolution { height, width } = INITIAL_CANVAS_RESOLUTION;
-        let canvas = (0..height)
-            .map(|_| (0..width).map(|_| None).collect())
-            .collect();
+        let canvas = Canvas::new(INITIAL_CANVAS_RESOLUTION);
 
         let mut dot_id_generator = IdGenerator::new();
 
@@ -85,13 +81,6 @@ impl Game {
         self.last_frame_time = now;
     }
 
-    pub fn iter_materials_as_bytes<'a>(&'a self) -> impl Iterator<Item = u8> + 'a {
-        self.canvas
-            .iter()
-            .flatten()
-            .map(|maybe_dot| maybe_dot.map_or(Material::EmptySpace as u8, |dot| dot.material as u8))
-    }
-
     pub fn set_next_frame(&mut self, delta_time: &Duration) {
         for dot in self.palette.values_mut() {
             dot.set_velocity(&self.resolution, delta_time);
@@ -129,7 +118,7 @@ impl Game {
         if self.last_dot_spawned.elapsed() >= DELAY_BETWEEN_DOTS {
             match self.physical_position_to_game_coordinates(cursor_position, window_resolution) {
                 CoordConversion::Converted(coord) => {
-                    if self.canvas[coord.y.round() as usize][coord.x.round() as usize].is_none() {
+                    if self.canvas.get(coord.to_rounded_usize()).unwrap().is_none() {
                         let new_dot = Dot::new(
                             &mut self.dot_id_generator,
                             Material::Sand,
@@ -144,12 +133,6 @@ impl Game {
                 }
                 CoordConversion::OutOfBounds => println!("WARNING! Clicked outside of game space"),
             }
-        }
-    }
-
-    pub fn clear_canvas(&mut self) {
-        for maybe_dot in self.canvas.iter_mut().flatten() {
-            *maybe_dot = None;
         }
     }
 
@@ -187,11 +170,9 @@ impl Game {
     }
 
     fn write_dots_to_grid(&mut self) {
-        self.clear_canvas();
+        self.canvas.clear();
         for dot in self.palette.values_mut() {
-            let row = dot.position.y.clone().round() as usize;
-            let col = dot.position.x.clone().round() as usize;
-            self.canvas[row][col] = Some(*dot);
+            self.canvas.set(dot.position.to_rounded_usize(), Some(*dot));
         }
     }
 }

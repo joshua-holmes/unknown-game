@@ -1,6 +1,6 @@
 use std::collections::VecDeque;
 
-use super::{dot::Dot, geometry::Vec2, global_game_object::Canvas};
+use super::{dot::Dot, geometry::Vec2, canvas::{Canvas, CanvasError}};
 
 enum RayCastError {
     RayOutOfBounds,
@@ -78,12 +78,12 @@ impl<'a> RayCast<'a> {
         )));
 
         while let Some(coord) = next_coord.take() {
-            match self.look(coord) {
+            match self.canvas.get(coord) {
                 Ok(dot_maybe) => self.path.push_back(RayPoint {
                     coord,
                     dot: dot_maybe,
                 }),
-                Err(RayCastError::RayOutOfBounds) => {
+                Err(CanvasError::CoordOutOfBounds) => {
                     return println!("Ray cast blast got cast where it won't last! Some features may not function properly.");
                 }
             }
@@ -94,26 +94,16 @@ impl<'a> RayCast<'a> {
             }
         }
     }
-
-    fn look(&self, location: Vec2<usize>) -> Result<Option<Dot>, RayCastError> {
-        Ok(self
-            .canvas
-            .get(location.y)
-            .ok_or(RayCastError::RayOutOfBounds)?
-            .get(location.x)
-            .ok_or(RayCastError::RayOutOfBounds)?
-            .clone())
-    }
 }
 
 #[cfg(test)]
 mod tests {
     use std::collections::VecDeque;
 
-    use crate::game::{
-        dot::Dot, geometry::Vec2, global_game_object::Canvas, id_generator::IdGenerator,
-        material::Material, ray_cast::RayPoint,
-    };
+    use crate::{game::{
+        dot::Dot, geometry::Vec2, id_generator::IdGenerator,
+        material::Material, canvas::Canvas,
+    }, rendering::glsl_types::Resolution};
 
     use super::RayCast;
 
@@ -121,9 +111,7 @@ mod tests {
         const WIDTH: usize = 10;
         const HEIGHT: usize = 10;
 
-        let mut canvas: Canvas = (0..HEIGHT)
-            .map(|_| (0..WIDTH).map(|_| None).collect())
-            .collect();
+        let mut canvas = Canvas::new(Resolution { height: HEIGHT as i32, width: WIDTH as i32 });
 
         for dot in test_data.iter() {
             let coord = Vec2::new(
@@ -133,7 +121,7 @@ mod tests {
             if coord.x > WIDTH || coord.y > HEIGHT {
                 panic!("Test data was not setup correctly, dot placed out of bounds.");
             }
-            canvas[coord.y][coord.x] = Some(*dot);
+            canvas.set(coord, Some(*dot));
         }
 
         canvas
