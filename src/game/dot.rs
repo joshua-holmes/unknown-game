@@ -1,7 +1,4 @@
-use std::{
-    collections::HashMap,
-    time::{Duration, Instant},
-};
+use std::time::{Duration, Instant};
 
 use crate::{game::rng, rendering::glsl_types::Resolution};
 
@@ -9,7 +6,7 @@ use super::{
     geometry::Vec2,
     id_generator::{Id, IdGenerator},
     material::Material,
-    GRAVITY, FRICTION,
+    GRAVITY, FRICTION, global_game_object::Canvas,
 };
 
 pub struct DotCollisionMod {
@@ -46,7 +43,7 @@ impl Dot {
 
     pub fn check_for_dot_collision(
         &self,
-        canvas: &mut Vec<Vec<Option<Dot>>>,
+        canvas: &mut Canvas,
     ) -> Option<(DotCollisionMod, DotCollisionMod)> {
         let next_pos = self.next_position.unwrap();
         if let Some(ref canvas_dot) = canvas[next_pos.y.round() as usize][next_pos.x.round() as usize] {

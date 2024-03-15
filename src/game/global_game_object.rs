@@ -16,9 +16,11 @@ use super::{
     DELAY_BETWEEN_DOTS, INITIAL_CANVAS_RESOLUTION,
 };
 
+pub type Canvas = Vec<Vec<Option<Dot>>>;
+
 pub struct Game {
     pub delta_time: Duration,
-    pub canvas: Vec<Vec<Option<Dot>>>,
+    pub canvas: Canvas,
     pub palette: HashMap<Id, Dot>,
     pub last_dot_spawned: Instant,
     pub resolution: Resolution,
