@@ -96,7 +96,8 @@ impl Dot {
     }
 
     pub fn set_velocity(&mut self, resolution: Resolution, delta_time: Duration) {
-        let accel = self.calculate_real_drag() + GRAVITY;
+        let drag = self.velocity * 2. * self.material.properties().drag;
+        let accel = GRAVITY - drag;
         let mut new_velocity = self.velocity + (accel * delta_time.as_secs_f64());
 
         let floor_collision =
@@ -114,17 +115,6 @@ impl Dot {
         }
 
         self.velocity = new_velocity;
-    }
-
-    /// Calculates real change in acceleration from drag property
-    fn calculate_real_drag(&self) -> Vec2<f64> {
-        let drag_value = self.material.properties().drag;
-        let vel_value = self.velocity.pythagorean_theorem();
-        if vel_value == 0. {
-            return Vec2::new(0., 0.);
-        }
-        let ratio = drag_value / vel_value;
-        self.velocity * -ratio
     }
 
     /// When materials have enough surface area, relative to their weight, they don't fall in a straight line. This is because the air they are falling in can steer them off course by small amounts. This is a simulation of that effect. Every so often, if the material is traveling fast enough, it will experience a slight offset in position (calculated in pixels).
