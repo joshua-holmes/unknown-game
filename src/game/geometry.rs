@@ -90,6 +90,19 @@ impl<T> Vec2<T> {
         }
         copy_self
     }
+
+    pub fn clamp_to_resolution(&self, resolution: Resolution) -> Self
+    where
+        T: From<i32> + Copy + PartialOrd
+    {
+        self.clamp(
+            Some(Vec2::new(T::from(0), T::from(0))),
+            Some(Vec2::new(
+                T::from(resolution.width - 1),
+                T::from(resolution.height - 1)
+            ))
+        )
+    }
 }
 impl Vec2<f64> {
     pub fn pythagorean_theorem(&self) -> f64 {
@@ -270,6 +283,30 @@ where
         self.y += rhs.y;
     }
 }
+impl<T> Add<T> for Vec2<T>
+where
+    T: Add + Copy,
+{
+    type Output = Vec2<T::Output>;
+    fn add(self, rhs: T) -> Self::Output {
+        Self::Output {
+            x: self.x + rhs,
+            y: self.y + rhs,
+        }
+    }
+}
+impl<T> Add<T> for &Vec2<T>
+where
+    T: Add + Copy,
+{
+    type Output = Vec2<T::Output>;
+    fn add(self, rhs: T) -> Self::Output {
+        Self::Output {
+            x: self.x + rhs,
+            y: self.y + rhs,
+        }
+    }
+}
 impl<T> Div for Vec2<T>
 where
     T: Div,
@@ -352,6 +389,30 @@ where
     fn sub_assign(&mut self, rhs: Self) {
         self.x -= rhs.x;
         self.y -= rhs.y;
+    }
+}
+impl<T> Sub<T> for Vec2<T>
+where
+    T: Sub + Copy,
+{
+    type Output = Vec2<T::Output>;
+    fn sub(self, rhs: T) -> Self::Output {
+        Self::Output {
+            x: self.x - rhs,
+            y: self.y - rhs,
+        }
+    }
+}
+impl<T> Sub<T> for &Vec2<T>
+where
+    T: Sub + Copy,
+{
+    type Output = Vec2<T::Output>;
+    fn sub(self, rhs: T) -> Self::Output {
+        Self::Output {
+            x: self.x - rhs,
+            y: self.y - rhs,
+        }
     }
 }
 impl<T> Mul for Vec2<T>

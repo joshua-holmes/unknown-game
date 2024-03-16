@@ -58,7 +58,7 @@ pub fn handle_event(
             }
             game.set_time();
             let delta_time = game.delta_time;
-            game.set_next_frame(&delta_time);
+            game.set_next_frame(delta_time);
             render_engine.display_next_frame(&game, window.clone());
         }
         _ => (),

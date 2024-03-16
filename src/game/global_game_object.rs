@@ -13,7 +13,7 @@ use super::{
     geometry::Vec2,
     id_generator::{Id, IdGenerator},
     material::Material,
-    DELAY_BETWEEN_DOTS, INITIAL_CANVAS_RESOLUTION, canvas::Canvas,
+    DELAY_BETWEEN_DOTS, INITIAL_CANVAS_RESOLUTION, canvas::Canvas, CURSOR_SIZE,
 };
 
 pub struct Game {
@@ -35,14 +35,14 @@ impl Game {
         let dot = Dot::new(
             &mut dot_id_generator,
             Material::Dirt,
-            Vec2::new(250., 250.),
-            Vec2::new(0., 0.),
+            Vec2::new(200., 201.),
+            Vec2::new(10., 10.),
         );
         let dot2 = Dot::new(
             &mut dot_id_generator,
             Material::Sand,
-            Vec2::new(250., 0.),
-            Vec2::new(0., 499.),
+            Vec2::new(250., 250.),
+            Vec2::new(0., 0.),
         );
         let dot3 = Dot::new(
             &mut dot_id_generator,
@@ -61,8 +61,8 @@ impl Game {
         let mut palette = HashMap::with_capacity((height * width) as usize);
         palette.insert(dot.id, dot);
         palette.insert(dot2.id, dot2);
-        palette.insert(dot3.id, dot3);
-        palette.insert(dot4.id, dot4);
+        // palette.insert(dot3.id, dot3);
+        // palette.insert(dot4.id, dot4);
 
         Self {
             canvas,
@@ -81,14 +81,14 @@ impl Game {
         self.last_frame_time = now;
     }
 
-    pub fn set_next_frame(&mut self, delta_time: &Duration) {
+    pub fn set_next_frame(&mut self, delta_time: Duration) {
         for dot in self.palette.values_mut() {
-            dot.set_velocity(&self.resolution, delta_time);
+            dot.set_velocity(self.resolution, delta_time);
         }
 
         let mut dots_to_modify = Vec::new();
         for dot in self.palette.values_mut() {
-            dot.find_next_position(&self.resolution, &self.delta_time);
+            dot.find_next_position(self.resolution, self.delta_time);
             if dot.next_position.unwrap().to_rounded_usize() != dot.position.to_rounded_usize() {
                 let collision_check = dot.check_for_dot_collision(&mut self.canvas);
                 if let Some(collided_dots) = collision_check {
@@ -120,18 +120,37 @@ impl Game {
         if self.last_dot_spawned.elapsed() >= DELAY_BETWEEN_DOTS {
             match self.physical_position_to_game_coordinates(cursor_position, window_resolution) {
                 CoordConversion::Converted(coord) => {
-                    if self.canvas.get(coord.to_rounded_usize()).unwrap().is_none() {
-                        let new_dot = Dot::new(
-                            &mut self.dot_id_generator,
-                            Material::Sand,
-                            coord,
-                            Vec2::new(0., 0.),
-                        );
-                        if let Some(old_dot) = self.palette.insert(new_dot.id, new_dot) {
-                            panic!("Dot already exists in palette. Old dot:\n{:?}\nwas replaced with new dot:\n{:?}", old_dot, new_dot);
+                    let radius = CURSOR_SIZE;
+                    let top_left = (coord - radius).clamp_to_resolution(self.canvas.resolution).to_rounded_usize();
+                    let bottom_right = (coord + radius).clamp_to_resolution(self.canvas.resolution).to_rounded_usize();
+                    for x in top_left.x..=bottom_right.x {
+                        for y in top_left.y..=bottom_right.y {
+                            let point = Vec2::new(x, y);
+                            let distance = (point.into_f64() - coord).pythagorean_theorem();
+
+                            // dot can only spawn within radius of CURSOR_SIZE
+                            if distance > radius {
+                                continue;
+                            }
+
+                            // dot can't spawn if another dot is already there
+                            if self.canvas.get(point).unwrap().is_some() {
+                                continue;
+                            }
+
+                            // add new dot to palette, error if dot is already there
+                            let new_dot = Dot::new(
+                                &mut self.dot_id_generator,
+                                Material::Sand,
+                                point.into_f64(),
+                                Vec2::new(0., 0.),
+                            );
+                            if let Some(old_dot) = self.palette.insert(new_dot.id, new_dot) {
+                                panic!("Dot already exists in palette. Old dot:\n{:?}\nwas replaced with new dot:\n{:?}", old_dot, new_dot);
+                            }
                         }
-                        self.last_dot_spawned = Instant::now();
                     }
+                    self.last_dot_spawned = Instant::now();
                 }
                 CoordConversion::OutOfBounds => println!("WARNING! Clicked outside of game space"),
             }

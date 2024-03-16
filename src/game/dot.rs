@@ -87,21 +87,15 @@ impl Dot {
         );
     }
 
-    pub fn find_next_position(&mut self, resolution: &Resolution, delta_time: &Duration) {
+    pub fn find_next_position(&mut self, resolution: Resolution, delta_time: Duration) {
         let offset_from_drag = self.calculate_pos_offset_from_drag();
         let unclamped_position =
             self.velocity * delta_time.as_secs_f64() + offset_from_drag + self.position;
-        let new_position = unclamped_position.clamp(
-            Some(Vec2::new(0., 0.)),
-            Some(Vec2::new(
-                (resolution.width - 1) as f64,
-                (resolution.height - 1) as f64,
-            )),
-        );
+        let new_position = unclamped_position.clamp_to_resolution(resolution);
         self.next_position = Some(new_position);
     }
 
-    pub fn set_velocity(&mut self, resolution: &Resolution, delta_time: &Duration) {
+    pub fn set_velocity(&mut self, resolution: Resolution, delta_time: Duration) {
         let accel = self.calculate_real_drag() + GRAVITY;
         let mut new_velocity = self.velocity + (accel * delta_time.as_secs_f64());
 

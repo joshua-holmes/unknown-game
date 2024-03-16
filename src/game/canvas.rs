@@ -127,8 +127,6 @@ impl Canvas {
 
 #[cfg(test)]
 mod tests {
-    use std::collections::VecDeque;
-
     use crate::{game::{
         dot::Dot, geometry::Vec2, id_generator::IdGenerator,
         material::Material, canvas::Canvas,
