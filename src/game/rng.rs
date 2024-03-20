@@ -4,20 +4,20 @@ use std::ops::Range;
 use std::time::{SystemTime, UNIX_EPOCH};
 
 pub fn rand_f64(range: Range<f64>) -> f64 {
-    let rand_0_to_1 = (now_in_nanos() % 1_000_000) as f64 / 1_000_000.;
+    let rand_0_to_1 = (now_in_micros() % 1_000) as f64 / 1_000.;
     let diff = range.end - range.start;
     rand_0_to_1 * diff + range.start
 }
 
 #[cfg(not(test))]
-fn now_in_nanos() -> u128 {
+fn now_in_micros() -> u128 {
     SystemTime::now()
         .duration_since(UNIX_EPOCH)
         .expect("Went backwards in time")
-        .as_nanos()
+        .as_micros()
 }
 #[cfg(test)]
-fn now_in_nanos() -> u128 {
+fn now_in_micros() -> u128 {
     490_000
 }
 
