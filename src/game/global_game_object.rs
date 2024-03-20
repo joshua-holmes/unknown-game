@@ -35,14 +35,14 @@ impl Game {
         let dot = Dot::new(
             &mut dot_id_generator,
             Material::Dirt,
-            Vec2::new(200., 201.),
-            Vec2::new(10., 10.),
+            Vec2::new(200., 0.),
+            Vec2::new(0., 0.),
         );
         let dot2 = Dot::new(
             &mut dot_id_generator,
             Material::Sand,
-            Vec2::new(250., 250.),
-            Vec2::new(0., 0.),
+            Vec2::new(300., 0.),
+            Vec2::new(0., 100.),
         );
         let dot3 = Dot::new(
             &mut dot_id_generator,

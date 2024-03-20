@@ -96,8 +96,8 @@ impl Dot {
     }
 
     pub fn set_velocity(&mut self, resolution: Resolution, delta_time: Duration) {
-        let drag = self.velocity * 2. * self.material.properties().drag;
-        let accel = GRAVITY - drag;
+        let drag_vec = self.calculate_drag_vec();
+        let accel = GRAVITY - drag_vec;
         let mut new_velocity = self.velocity + (accel * delta_time.as_secs_f64());
 
         let floor_collision =
@@ -141,5 +141,10 @@ impl Dot {
         } else {
             Vec2::new(0., 0.)
         }
+    }
+
+    /// Uses drag property and velocity to calculate drag vector
+    pub fn calculate_drag_vec(&self) -> Vec2<f64> {
+        self.velocity * 2. * self.material.properties().drag
     }
 }

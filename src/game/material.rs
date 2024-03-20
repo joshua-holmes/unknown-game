@@ -7,8 +7,8 @@ pub enum Material {
 impl Material {
     pub fn properties(&self) -> MaterialProperties {
         match self {
-            Material::EmptySpace => MaterialProperties { drag: 1. },
-            Material::Sand => MaterialProperties { drag: 0. },
+            Material::EmptySpace => MaterialProperties { drag: 0. },
+            Material::Sand => MaterialProperties { drag: 1. },
             Material::Dirt => MaterialProperties { drag: 0. },
         }
     }
