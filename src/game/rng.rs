@@ -9,6 +9,10 @@ pub fn rand_f64(range: Range<f64>) -> f64 {
     rand_0_to_1 * diff + range.start
 }
 
+pub fn rand_bool() -> bool {
+    (now_in_micros() / 1_000) % 2 == 0
+}
+
 #[cfg(not(test))]
 fn now_in_micros() -> u128 {
     SystemTime::now()
@@ -18,16 +22,22 @@ fn now_in_micros() -> u128 {
 }
 #[cfg(test)]
 fn now_in_micros() -> u128 {
-    490
+    1_710_974_626_375_231
 }
 
 #[cfg(test)]
 mod tests {
-    use super::rand_f64;
+    use super::{rand_f64, rand_bool};
 
     #[test]
     fn test_rand_f64() {
         let num: f64 = rand_f64((0.)..1.);
-        assert_eq!(num, 0.49);
+        assert_eq!(num, 0.231);
+    }
+
+    #[test]
+    fn test_rand_bool() {
+        let b: bool = rand_bool();
+        assert_eq!(b, false);
     }
 }
