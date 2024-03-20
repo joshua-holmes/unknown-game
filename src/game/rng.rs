@@ -18,7 +18,7 @@ fn now_in_micros() -> u128 {
 }
 #[cfg(test)]
 fn now_in_micros() -> u128 {
-    490_000
+    490
 }
 
 #[cfg(test)]
