@@ -34,35 +34,24 @@ impl Game {
 
         let dot = Dot::new(
             &mut dot_id_generator,
-            Material::Dirt,
-            Vec2::new(200., 0.),
-            Vec2::new(0., 0.),
-        );
-        let dot2 = Dot::new(
-            &mut dot_id_generator,
             Material::Sand,
-            Vec2::new(300., 0.),
-            Vec2::new(0., 100.),
-        );
-        let dot3 = Dot::new(
-            &mut dot_id_generator,
-            Material::Dirt,
-            Vec2::new(350., 500.),
-            Vec2::new(0., 0.),
-        );
-        let dot4 = Dot::new(
-            &mut dot_id_generator,
-            Material::Sand,
-            Vec2::new(350., 0.),
-            Vec2::new(0., 100.),
+            Vec2::new(100., 490.),
+            Vec2::new(100., 0.),
         );
 
         // Set some dots for testing
         let mut palette = HashMap::with_capacity((height * width) as usize);
         palette.insert(dot.id, dot);
-        palette.insert(dot2.id, dot2);
-        // palette.insert(dot3.id, dot3);
-        // palette.insert(dot4.id, dot4);
+
+        for i in 0..width {
+            let dot = Dot::new(
+                &mut dot_id_generator,
+                Material::Dirt,
+                Vec2::new(i as f64, 499.),
+                Vec2::new(0., 0.),
+            );
+            palette.insert(dot.id, dot);
+        }
 
         Self {
             canvas,
