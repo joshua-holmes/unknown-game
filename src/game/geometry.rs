@@ -127,6 +127,10 @@ impl Vec2<f64> {
     pub fn to_rounded_usize(&self) -> Vec2<usize> {
         Vec2::new(self.x.round() as usize, self.y.round() as usize)
     }
+
+    pub fn angle_in_degrees(&self) -> f64 {
+        (self.y.atan2(self.x).to_degrees() + 360.) % 360.
+    }
 }
 impl Vec2<usize> {
     pub fn into_f64(&self) -> Vec2<f64> {

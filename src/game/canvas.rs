@@ -66,6 +66,14 @@ impl Canvas {
         }
     }
 
+    pub fn cast_ray_to_edge(&self, ray_start: Vec2<f64>, direction_in_degrees: f64) -> VecDeque<RayPoint> {
+        let ray_end = Vec2::new(
+            direction_in_degrees.to_radians().cos() * self.resolution.width as f64 + ray_start.x,
+            direction_in_degrees.to_radians().sin() * self.resolution.height as f64 + ray_start.y,
+        );
+        self.cast_ray(ray_start, ray_end)
+    }
+
     /// Casts a ray and captures every point in the path of the ray in order.
     /// Start of ray is exclusive, end is inclusive. Casts a ray and creates a new ray cast object.
     pub fn cast_ray(&self, ray_start: Vec2<f64>, ray_end: Vec2<f64>) -> VecDeque<RayPoint> {
@@ -146,7 +154,7 @@ mod tests {
             if coord.x > WIDTH || coord.y > HEIGHT {
                 panic!("Test data was not setup correctly, dot placed out of bounds.");
             }
-            canvas.set(coord, Some(*dot));
+            canvas.set(coord, Some(*dot)).unwrap();
         }
 
         canvas
@@ -336,6 +344,49 @@ mod tests {
             path[0].dot.is_none(),
             "Ray cast found dot at end point when it should have found empty space:\n{:?}",
             path[0]
+        );
+    }
+
+    #[test]
+    fn test_cast_to_edge() {
+        // n = nothing (null)
+        // d = dot
+        // * = starting point
+        // # = wall
+        // *------> = 0 degrees
+        //
+        // # # # # #
+        // # n d  
+        // #   *  
+        let ray_start = Vec2::new(1., 1.);
+        let direction_in_degrees = 247.5;
+        let mut dot_id_generator = IdGenerator::new();
+        let test_data = vec![
+            Dot::new(
+                &mut dot_id_generator,
+                Material::Sand,
+                Vec2::new(1., 0.),
+                Vec2::new(0., 0.),
+            ),
+        ];
+
+        let canvas = setup_canvas(test_data);
+        let path = canvas.cast_ray_to_edge(ray_start, direction_in_degrees);
+
+        for c in path.iter() {
+            println!("HERE {:?}", c);
+        }
+        assert_eq!(2, path.len());
+        assert_eq!(
+            Vec2::new(1, 0),
+            path[0].coord,
+            "First dot point had incorrect coordinates:\n{:?}",
+            path[0].dot
+        );
+        assert!(
+            path[1].dot.is_none(),
+            "Ray cast should have captured the dot as the first point in the ray, not the second:\n{:?}",
+            path[1]
         );
     }
 }
