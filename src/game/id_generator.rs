@@ -91,7 +91,7 @@ mod tests {
             largest_id: Some(80),
             deleted_ids: Vec::new(),
         };
-        id_gen.mark_id_deleted(30);
+        id_gen.mark_id_deleted(30).unwrap();
         if let Some(id) = id_gen.deleted_ids.pop() {
             assert_eq!(id, 30);
         } else {

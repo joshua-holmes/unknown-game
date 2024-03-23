@@ -54,9 +54,21 @@ impl Dot {
         let ray = canvas.cast_ray(self.position, next_pos);
         let mut prev_coord = self.position.to_rounded_usize();
         for point in ray {
-            if let Some(dot) = point.dot {
-                if self.id != dot.id {
-                    return Some(self.handle_dot_collision(&dot, prev_coord));
+            if let Some(target_dot) = point.dot {
+                if self.id != target_dot.id {
+                    let diff = self.velocity - target_dot.velocity;
+                    return Some(DotCollisionMods {
+                        this: DotCollisionMod {
+                            id: self.id,
+                            next_velocity: (self.velocity - diff) * (1. - FRICTION),
+                            next_position: Some(prev_coord.into_f64()),
+                        },
+                        other: DotCollisionMod {
+                            id: target_dot.id,
+                            next_velocity: (target_dot.velocity - diff.to_negative()) * (1. - FRICTION),
+                            next_position: None
+                        }
+                    });
                 }
             } else {
                 prev_coord = point.coord;
@@ -65,37 +77,15 @@ impl Dot {
         None
     }
 
-    fn handle_dot_collision(&self, target_dot: &Dot, prev_coord: Vec2<usize>) -> DotCollisionMods {
-        let diff = self.velocity - target_dot.velocity;
-        DotCollisionMods {
-            this: DotCollisionMod {
-                id: self.id,
-                next_velocity: (self.velocity - diff) * (1. - FRICTION),
-                next_position: Some(prev_coord.into_f64()),
-            },
-            other: DotCollisionMod {
-                id: target_dot.id,
-                next_velocity: (target_dot.velocity - diff.to_negative()) * (1. - FRICTION),
-                next_position: None
-            }
-        }
-    }
-
-    pub fn set_next_position(&mut self) {
-        self.position = self.next_position.take().expect(
-            "Next position not set! Don't forget to call `Dot::handle_dot_collision` method",
-        );
-    }
-
-    pub fn find_next_position(&mut self, resolution: Resolution, delta_time: Duration) {
-        let offset_from_drag = self.calculate_pos_offset_from_drag();
+    pub fn find_next_position(&mut self, resolution: Resolution, delta_time: Duration) -> Vec2<f64> {
+        let offset_from_drag = self.find_pos_offset_from_drag();
         let unclamped_position =
             self.velocity * delta_time.as_secs_f64() + offset_from_drag + self.position;
         let new_position = unclamped_position.clamp_to_resolution(resolution);
-        self.next_position = Some(new_position);
+        new_position
     }
 
-    pub fn set_velocity(&mut self, resolution: Resolution, delta_time: Duration) {
+    pub fn find_next_velocity(&self, resolution: Resolution, delta_time: Duration) -> Vec2<f64> {
         let real_drag = self.velocity * self.material.properties().drag;
         let accel = GRAVITY - real_drag;
         let mut new_velocity = self.velocity + (accel * delta_time.as_secs_f64());
@@ -114,11 +104,11 @@ impl Dot {
             new_velocity.x = 0.;
         }
 
-        self.velocity = new_velocity;
+        new_velocity
     }
 
     /// When materials have enough surface area, relative to their weight, they don't fall in a straight line. This is because the air they are falling in can steer them off course by small amounts. This is a simulation of that effect. Every so often, if the material is traveling fast enough, it will experience a slight offset in position (calculated in pixels).
-    fn calculate_pos_offset_from_drag(&mut self) -> Vec2<f64> {
+    fn find_pos_offset_from_drag(&mut self) -> Vec2<f64> {
         let drag = self.material.properties().drag;
 
         // max amount of pixels to offset the material by

@@ -8,12 +8,13 @@ use winit::dpi::{PhysicalPosition, PhysicalSize};
 use crate::rendering::glsl_types::Resolution;
 
 use super::{
+    canvas::{Canvas, CanvasError},
     dot::Dot,
     enums::CoordConversion,
     geometry::Vec2,
     id_generator::{Id, IdGenerator},
     material::Material,
-    DELAY_BETWEEN_DOTS, INITIAL_CANVAS_RESOLUTION, canvas::Canvas, CURSOR_SIZE,
+    CURSOR_SIZE, DELAY_BETWEEN_DOTS, INITIAL_CANVAS_RESOLUTION,
 };
 
 pub struct Game {
@@ -86,13 +87,14 @@ impl Game {
 
     pub fn set_next_frame(&mut self, delta_time: Duration) {
         for dot in self.palette.values_mut() {
-            dot.set_velocity(self.resolution, delta_time);
+            dot.velocity = dot.find_next_velocity(self.resolution, delta_time);
         }
 
         let mut dots_to_modify = Vec::new();
         for dot in self.palette.values_mut() {
-            dot.find_next_position(self.resolution, self.delta_time);
-            if dot.next_position.unwrap().to_rounded_usize() != dot.position.to_rounded_usize() {
+            let next_pos = dot.find_next_position(self.resolution, self.delta_time);
+            dot.next_position = Some(next_pos);
+            if next_pos.to_rounded_usize() != dot.position.to_rounded_usize() {
                 let collision_check = dot.check_for_dot_collision(&mut self.canvas);
                 if let Some(collided_dots) = collision_check {
                     dots_to_modify.push(collided_dots.this);
@@ -110,8 +112,11 @@ impl Game {
         }
 
         for dot in self.palette.values_mut() {
-            dot.set_next_position();
+            dot.position = dot.next_position.take().expect(
+                "Next position not set! Don't forget to call `Dot::handle_dot_collision` method",
+            );
         }
+
         self.write_dots_to_grid();
     }
 
@@ -124,8 +129,12 @@ impl Game {
             match self.physical_position_to_game_coordinates(cursor_position, window_resolution) {
                 CoordConversion::Converted(coord) => {
                     let radius = CURSOR_SIZE;
-                    let top_left = (coord - radius).clamp_to_resolution(self.canvas.resolution).to_rounded_usize();
-                    let bottom_right = (coord + radius).clamp_to_resolution(self.canvas.resolution).to_rounded_usize();
+                    let top_left = (coord - radius)
+                        .clamp_to_resolution(self.canvas.resolution)
+                        .to_rounded_usize();
+                    let bottom_right = (coord + radius)
+                        .clamp_to_resolution(self.canvas.resolution)
+                        .to_rounded_usize();
                     for x in top_left.x..=bottom_right.x {
                         for y in top_left.y..=bottom_right.y {
                             let point = Vec2::new(x, y);
@@ -196,7 +205,13 @@ impl Game {
     fn write_dots_to_grid(&mut self) {
         self.canvas.clear();
         for dot in self.palette.values_mut() {
-            self.canvas.set(dot.position.to_rounded_usize(), Some(*dot));
+            match self.canvas.set(dot.position.to_rounded_usize(), Some(*dot)) {
+                Err(CanvasError::CoordOutOfBounds) => println!(
+                    "WARNING: Tried to write a dot to canvas that was out of bounds:\n{:?}",
+                    dot
+                ),
+                Ok(_) => {}
+            }
         }
     }
 }
