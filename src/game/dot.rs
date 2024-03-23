@@ -96,8 +96,8 @@ impl Dot {
     }
 
     pub fn set_velocity(&mut self, resolution: Resolution, delta_time: Duration) {
-        let drag_vec = self.calculate_drag_vec();
-        let accel = GRAVITY - drag_vec;
+        let real_drag = self.velocity * self.material.properties().drag;
+        let accel = GRAVITY - real_drag;
         let mut new_velocity = self.velocity + (accel * delta_time.as_secs_f64());
 
         let floor_collision =
@@ -119,18 +119,17 @@ impl Dot {
 
     /// When materials have enough surface area, relative to their weight, they don't fall in a straight line. This is because the air they are falling in can steer them off course by small amounts. This is a simulation of that effect. Every so often, if the material is traveling fast enough, it will experience a slight offset in position (calculated in pixels).
     fn calculate_pos_offset_from_drag(&mut self) -> Vec2<f64> {
-        // how much drag affects an item is dependent on how much gravity it is experiencing
-        let drag_grav_ratio = self.material.properties().drag / GRAVITY.pythagorean_theorem();
+        let drag = self.material.properties().drag;
 
         // max amount of pixels to offset the material by
-        let max_offset_value = 2. * drag_grav_ratio;
+        let max_offset_value = drag;
 
         // actual amount to offset material by, random between 0 and `max_offset_value`
         let offset_value = rng::rand_f64((0.)..max_offset_value);
 
         // materials with less drag need to be traveling faster to have this effect
-        let material_is_light_enough =
-            self.velocity.x >= (1. - drag_grav_ratio) && self.velocity.y >= (1. - drag_grav_ratio);
+        let terminal_velocity = GRAVITY.pythagorean_theorem() / drag;
+        let material_is_light_enough = self.velocity.pythagorean_theorem() >= (terminal_velocity * 0.25);
 
         // the time required between pixels shifts
         let offset_delay = Duration::from_secs_f32(0.5);
@@ -141,10 +140,5 @@ impl Dot {
         } else {
             Vec2::new(0., 0.)
         }
-    }
-
-    /// Uses drag property and velocity to calculate drag vector
-    pub fn calculate_drag_vec(&self) -> Vec2<f64> {
-        self.velocity * 2. * self.material.properties().drag
     }
 }
