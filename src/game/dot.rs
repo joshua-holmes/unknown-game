@@ -9,12 +9,12 @@ use super::{
     GRAVITY, FRICTION, canvas::Canvas,
 };
 
-pub struct DotCollisionMods {
-    pub this: DotCollisionMod,
-    pub other: DotCollisionMod,
+pub struct DotCollision {
+    pub this: CollisionReport,
+    pub other: CollisionReport,
 }
 
-pub struct DotCollisionMod {
+pub struct CollisionReport {
     pub id: Id,
     pub next_velocity: Vec2<f64>,
     pub next_position: Option<Vec2<f64>>,
@@ -44,37 +44,6 @@ impl Dot {
             next_position: None,
             last_offset: Instant::now(),
         }
-    }
-
-    pub fn check_for_dot_collision(
-        &self,
-        canvas: &mut Canvas,
-    ) -> Option<DotCollisionMods> {
-        let next_pos = self.next_position.unwrap();
-        let ray = canvas.cast_ray(self.position, next_pos);
-        let mut prev_coord = self.position.to_rounded_usize();
-        for point in ray {
-            if let Some(target_dot) = point.dot {
-                if self.id != target_dot.id {
-                    let diff = self.velocity - target_dot.velocity;
-                    return Some(DotCollisionMods {
-                        this: DotCollisionMod {
-                            id: self.id,
-                            next_velocity: (self.velocity - diff) * (1. - FRICTION),
-                            next_position: Some(prev_coord.into_f64()),
-                        },
-                        other: DotCollisionMod {
-                            id: target_dot.id,
-                            next_velocity: (target_dot.velocity - diff.to_negative()) * (1. - FRICTION),
-                            next_position: None
-                        }
-                    });
-                }
-            } else {
-                prev_coord = point.coord;
-            }
-        }
-        None
     }
 
     pub fn find_next_position(&mut self, resolution: Resolution, delta_time: Duration, offset: Vec2<f64>) -> Vec2<f64> {

@@ -2,7 +2,7 @@ use std::collections::VecDeque;
 
 use crate::rendering::glsl_types::Resolution;
 
-use super::{dot::Dot, geometry::Vec2, material::Material};
+use super::{dot::{Dot, DotCollision, CollisionReport}, geometry::Vec2, material::Material, FRICTION};
 
 #[derive(Debug)]
 pub enum CanvasError {
@@ -130,6 +130,37 @@ impl Canvas {
         }
 
         path
+    }
+
+    pub fn check_for_dot_collision(
+        &self,
+        this_dot: &Dot,
+    ) -> Option<DotCollision> {
+        let next_pos = this_dot.next_position.unwrap();
+        let ray = self.cast_ray(this_dot.position, next_pos);
+        let mut prev_coord = this_dot.position.to_rounded_usize();
+        for point in ray {
+            if let Some(target_dot) = point.dot {
+                if this_dot.id != target_dot.id {
+                    let diff = this_dot.velocity - target_dot.velocity;
+                    return Some(DotCollision {
+                        this: CollisionReport {
+                            id: this_dot.id,
+                            next_velocity: (this_dot.velocity - diff) * (1. - FRICTION),
+                            next_position: Some(prev_coord.into_f64()),
+                        },
+                        other: CollisionReport {
+                            id: target_dot.id,
+                            next_velocity: (target_dot.velocity - diff.to_negative()) * (1. - FRICTION),
+                            next_position: None
+                        }
+                    });
+                }
+            } else {
+                prev_coord = point.coord;
+            }
+        }
+        None
     }
 }
 

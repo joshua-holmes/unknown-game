@@ -37,26 +37,12 @@ impl Game {
             &mut dot_id_generator,
             Material::Sand,
             Vec2::new(100., 490.),
-            Vec2::new(100., 0.),
-        );
-        let dot_2 = Dot::new(
-            &mut dot_id_generator,
-            Material::Sand,
-            Vec2::new(200., 0.),
-            Vec2::new(0., 0.),
-        );
-        let dot_3 = Dot::new(
-            &mut dot_id_generator,
-            Material::Dirt,
-            Vec2::new(300., 0.),
             Vec2::new(0., 0.),
         );
 
         // Set some dots for testing
         let mut palette = HashMap::with_capacity((height * width) as usize);
         palette.insert(dot.id, dot);
-        palette.insert(dot_2.id, dot_2);
-        palette.insert(dot_3.id, dot_3);
 
         for i in 0..width {
             let dot = Dot::new(
@@ -96,7 +82,7 @@ impl Game {
             let next_pos = dot.find_next_position(self.resolution, self.delta_time, offset_from_drag);
             dot.next_position = Some(next_pos);
             if next_pos.to_rounded_usize() != dot.position.to_rounded_usize() {
-                let collision_check = dot.check_for_dot_collision(&mut self.canvas);
+                let collision_check = self.canvas.check_for_dot_collision(&dot);
                 if let Some(collided_dots) = collision_check {
                     dots_to_modify.push(collided_dots.this);
                     dots_to_modify.push(collided_dots.other);
