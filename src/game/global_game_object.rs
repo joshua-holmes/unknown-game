@@ -92,7 +92,8 @@ impl Game {
 
         let mut dots_to_modify = Vec::new();
         for dot in self.palette.values_mut() {
-            let next_pos = dot.find_next_position(self.resolution, self.delta_time);
+            let offset_from_drag = dot.find_pos_offset_from_drag();
+            let next_pos = dot.find_next_position(self.resolution, self.delta_time, offset_from_drag);
             dot.next_position = Some(next_pos);
             if next_pos.to_rounded_usize() != dot.position.to_rounded_usize() {
                 let collision_check = dot.check_for_dot_collision(&mut self.canvas);

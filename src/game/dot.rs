@@ -77,10 +77,9 @@ impl Dot {
         None
     }
 
-    pub fn find_next_position(&mut self, resolution: Resolution, delta_time: Duration) -> Vec2<f64> {
-        let offset_from_drag = self.find_pos_offset_from_drag();
+    pub fn find_next_position(&mut self, resolution: Resolution, delta_time: Duration, offset: Vec2<f64>) -> Vec2<f64> {
         let unclamped_position =
-            self.velocity * delta_time.as_secs_f64() + offset_from_drag + self.position;
+            self.velocity * delta_time.as_secs_f64() + offset + self.position;
         let new_position = unclamped_position.clamp_to_resolution(resolution);
         new_position
     }
@@ -108,7 +107,7 @@ impl Dot {
     }
 
     /// When materials have enough surface area, relative to their weight, they don't fall in a straight line. This is because the air they are falling in can steer them off course by small amounts. This is a simulation of that effect. Every so often, if the material is traveling fast enough, it will experience a slight offset in position (calculated in pixels).
-    fn find_pos_offset_from_drag(&mut self) -> Vec2<f64> {
+    pub fn find_pos_offset_from_drag(&mut self) -> Vec2<f64> {
         let drag = self.material.properties().drag;
 
         // max amount of pixels to offset the material by
