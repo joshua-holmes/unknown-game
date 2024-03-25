@@ -33,16 +33,20 @@ impl Game {
 
         let mut dot_id_generator = IdGenerator::new();
 
-        let dot = Dot::new(
-            &mut dot_id_generator,
-            Material::Sand,
-            Vec2::new(100., 490.),
-            Vec2::new(0., 0.),
-        );
-
         // Set some dots for testing
         let mut palette = HashMap::with_capacity((height * width) as usize);
-        palette.insert(dot.id, dot);
+
+        for i in 0..10 {
+            for j in (0 + i)..(50 - i) {
+                let dot = Dot::new(
+                    &mut dot_id_generator,
+                    Material::Water,
+                    Vec2::new(100. + j as f64, 497. - i as f64),
+                    Vec2::new(0., 0.),
+                );
+                palette.insert(dot.id, dot);
+            }
+        }
 
         for i in 0..width {
             let dot = Dot::new(
