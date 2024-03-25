@@ -16,6 +16,15 @@ pub struct CanvasDot {
     pub material: Material,
     pub velocity: Vec2<f64>,
 }
+impl From<&Dot> for CanvasDot {
+    fn from(value: &Dot) -> Self {
+        Self {
+            id: value.id,
+            material: value.material,
+            velocity: value.velocity,
+        }
+    }
+}
 impl From<&mut Dot> for CanvasDot {
     fn from(value: &mut Dot) -> Self {
         Self {
