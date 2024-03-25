@@ -100,7 +100,7 @@ impl Game {
 
         for dot in self.palette.values_mut() {
             dot.position = dot.next_position.take().expect(
-                "Next position not set! Don't forget to call `Dot::handle_dot_collision` method",
+                "Next position not set!",
             );
         }
 
