@@ -41,7 +41,7 @@ impl Game {
                 let dot = Dot::new(
                     &mut dot_id_generator,
                     Material::Water,
-                    Vec2::new(100. + j as f64, 497. - i as f64),
+                    Vec2::new(100. + j as f64, 498. - i as f64),
                     Vec2::new(0., 0.),
                 );
                 palette.insert(dot.id, dot);
@@ -58,7 +58,7 @@ impl Game {
             palette.insert(dot.id, dot);
         }
 
-        Self {
+        let mut game = Self {
             canvas,
             palette,
             resolution: INITIAL_CANVAS_RESOLUTION,
@@ -66,7 +66,11 @@ impl Game {
             last_frame_time: Instant::now(),
             last_dot_spawned: Instant::now(),
             dot_id_generator,
-        }
+        };
+
+        game.write_dots_to_grid();
+
+        game
     }
 
     pub fn set_time(&mut self) {
