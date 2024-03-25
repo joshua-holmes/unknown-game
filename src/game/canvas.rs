@@ -2,7 +2,7 @@ use std::collections::VecDeque;
 
 use crate::rendering::glsl_types::Resolution;
 
-use super::{dot::{Dot, DotCollision, CollisionReport}, geometry::Vec2, material::Material, FRICTION};
+use super::{dot::{Dot, DotCollision, CollisionReport, CanvasDot}, geometry::Vec2, material::Material, FRICTION};
 
 #[derive(Debug)]
 pub enum CanvasError {
@@ -12,12 +12,12 @@ pub enum CanvasError {
 #[derive(Debug)]
 pub struct RayPoint {
     pub coord: Vec2<usize>,
-    pub dot: Option<Dot>,
+    pub dot: Option<CanvasDot>,
 }
 
 pub struct Canvas {
     pub resolution: Resolution,
-    grid: Vec<Vec<Option<Dot>>>,
+    grid: Vec<Vec<Option<CanvasDot>>>,
 }
 impl Canvas {
     pub fn new(resolution: Resolution) -> Self {
@@ -37,7 +37,7 @@ impl Canvas {
             .map(|maybe_dot| maybe_dot.map_or(Material::EmptySpace as u8, |dot| dot.material as u8))
     }
 
-    pub fn get(&self, coord: Vec2<usize>) -> Result<Option<Dot>, CanvasError> {
+    pub fn get(&self, coord: Vec2<usize>) -> Result<Option<CanvasDot>, CanvasError> {
         Ok(self
             .grid
             .get(coord.y)
@@ -47,7 +47,7 @@ impl Canvas {
             .clone())
     }
 
-    pub fn set(&mut self, coord: Vec2<usize>, value: Option<Dot>) -> Result<(), CanvasError> {
+    pub fn set(&mut self, coord: Vec2<usize>, value: Option<CanvasDot>) -> Result<(), CanvasError> {
         let dot = self
             .grid
             .get_mut(coord.y)
@@ -185,7 +185,7 @@ mod tests {
             if coord.x > WIDTH || coord.y > HEIGHT {
                 panic!("Test data was not setup correctly, dot placed out of bounds.");
             }
-            canvas.set(coord, Some(*dot)).unwrap();
+            canvas.set(coord, Some(dot.into())).unwrap();
         }
 
         canvas

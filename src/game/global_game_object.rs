@@ -192,7 +192,7 @@ impl Game {
     fn write_dots_to_grid(&mut self) {
         self.canvas.clear();
         for dot in self.palette.values_mut() {
-            match self.canvas.set(dot.position.to_rounded_usize(), Some(*dot)) {
+            match self.canvas.set(dot.position.to_rounded_usize(), Some(dot.into())) {
                 Err(CanvasError::CoordOutOfBounds) => println!(
                     "WARNING: Tried to write a dot to canvas that was out of bounds:\n{:?}",
                     dot

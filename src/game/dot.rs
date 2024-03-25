@@ -6,8 +6,25 @@ use super::{
     geometry::Vec2,
     id_generator::{Id, IdGenerator},
     material::Material,
-    GRAVITY, FRICTION, canvas::Canvas,
+    GRAVITY,
 };
+
+/// Special version of `Dot` that contains less data
+#[derive(Debug, Clone, Copy)]
+pub struct CanvasDot {
+    pub id: Id,
+    pub material: Material,
+    pub velocity: Vec2<f64>,
+}
+impl From<&mut Dot> for CanvasDot {
+    fn from(value: &mut Dot) -> Self {
+        Self {
+            id: value.id,
+            material: value.material,
+            velocity: value.velocity,
+        }
+    }
+}
 
 pub struct DotCollision {
     pub this: CollisionReport,
