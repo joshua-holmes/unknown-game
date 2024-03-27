@@ -35,15 +35,16 @@ impl From<&mut Dot> for CanvasDot {
     }
 }
 
-pub struct DotCollision {
-    pub this: CollisionReport,
-    pub other: CollisionReport,
+pub struct CollisionReport {
+    pub this: DotModification,
+    pub other: Option<DotModification>,
 }
 
-pub struct CollisionReport {
+#[derive(Debug)]
+pub struct DotModification {
     pub id: Id,
-    pub next_velocity: Vec2<f64>,
-    pub next_position: Option<Vec2<f64>>,
+    pub delta_velocity: Option<Vec2<f64>>,
+    pub delta_position: Option<Vec2<f64>>,
 }
 
 #[derive(Debug, Clone, Copy)]
@@ -52,7 +53,6 @@ pub struct Dot {
     pub material: Material,
     pub velocity: Vec2<f64>,
     pub position: Vec2<f64>,
-    pub next_position: Option<Vec2<f64>>,
     last_offset: Instant,
 }
 impl Dot {
@@ -67,36 +67,19 @@ impl Dot {
             material,
             velocity,
             position,
-            next_position: None,
             last_offset: Instant::now(),
         }
     }
 
     pub fn find_next_position(&mut self, resolution: Resolution, delta_time: Duration, offset: Vec2<f64>) -> Vec2<f64> {
-        let unclamped_position =
-            self.velocity * delta_time.as_secs_f64() + offset + self.position;
-        let new_position = unclamped_position.clamp_to_resolution(resolution);
-        new_position
+        // TODO: Add offset back in when physics issues are worked out
+        self.velocity * delta_time.as_secs_f64() + self.position
     }
 
-    pub fn find_next_velocity(&self, resolution: Resolution, delta_time: Duration) -> Vec2<f64> {
+    pub fn find_next_velocity(&self, delta_time: Duration) -> Vec2<f64> {
         let real_drag = self.velocity * self.material.properties().drag;
         let accel = GRAVITY - real_drag;
-        let mut new_velocity = self.velocity + (accel * delta_time.as_secs_f64());
-
-        let floor_collision =
-            self.position.y == (resolution.height - 1) as f64 && self.velocity.y >= 0.;
-        let ceil_collision = self.position.y == 0. && self.velocity.y < 0.;
-        if floor_collision || ceil_collision {
-            new_velocity.y = 0.;
-        }
-
-        let right_wall_collision =
-            self.position.x == (resolution.width - 1) as f64 && self.velocity.x > 0.;
-        let left_wall_collision = self.position.x == 0. && self.velocity.x < 0.;
-        if right_wall_collision || left_wall_collision {
-            new_velocity.x = 0.;
-        }
+        let new_velocity = self.velocity + (accel * delta_time.as_secs_f64());
 
         new_velocity
     }

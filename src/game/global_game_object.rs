@@ -9,7 +9,7 @@ use crate::rendering::glsl_types::Resolution;
 
 use super::{
     canvas::{Canvas, CanvasError},
-    dot::Dot,
+    dot::{Dot, DotModification},
     enums::CoordConversion,
     geometry::Vec2,
     id_generator::{Id, IdGenerator},
@@ -36,24 +36,31 @@ impl Game {
         // Set some dots for testing
         let mut palette = HashMap::with_capacity((height * width) as usize);
 
-        for i in 0..10 {
-            for j in (0 + i)..(50 - i) {
-                let dot = Dot::new(
-                    &mut dot_id_generator,
-                    Material::Water,
-                    Vec2::new(100. + j as f64, 498. - i as f64),
-                    Vec2::new(0., 0.),
-                );
-                palette.insert(dot.id, dot);
-            }
-        }
-
-        for i in 0..width {
+        // for i in 0..10 {
+        //     for j in (0 + i)..(50 - i) {
+        //         let dot = Dot::new(
+        //             &mut dot_id_generator,
+        //             Material::Water,
+        //             Vec2::new(100. + j as f64, 498. - i as f64),
+        //             Vec2::new(0., 0.),
+        //         );
+        //         palette.insert(dot.id, dot);
+        //     }
+        // }
+        //
+        let dot = Dot::new(
+            &mut dot_id_generator,
+            Material::Water,
+            Vec2::new(100., 0.),
+            Vec2::new(0., 100.),
+        );
+        palette.insert(dot.id, dot);
+        for i in 100..101 {
             let dot = Dot::new(
                 &mut dot_id_generator,
                 Material::Dirt,
                 Vec2::new(i as f64, 499.),
-                Vec2::new(0., 0.),
+                Vec2::new(0., -100.),
             );
             palette.insert(dot.id, dot);
         }
@@ -80,36 +87,41 @@ impl Game {
     }
 
     pub fn set_next_frame(&mut self, delta_time: Duration) {
+        // find velocity
         for dot in self.palette.values_mut() {
-            dot.velocity = dot.find_next_velocity(self.resolution, delta_time);
+            dot.velocity = dot.find_next_velocity(delta_time);
         }
 
+        // find position
         let mut dots_to_modify = Vec::new();
         for dot in self.palette.values_mut() {
             let offset_from_drag = dot.find_pos_offset_from_drag();
             let next_pos = dot.find_next_position(self.resolution, self.delta_time, offset_from_drag);
-            dot.next_position = Some(next_pos);
             if next_pos.to_rounded_usize() != dot.position.to_rounded_usize() {
-                let collision_check = self.canvas.check_for_dot_collision(&dot);
+                let collision_check = self.canvas.check_for_dot_collision(&dot, next_pos);
                 if let Some(collided_dots) = collision_check {
                     dots_to_modify.push(collided_dots.this);
-                    dots_to_modify.push(collided_dots.other);
+                    if let Some(other) = collided_dots.other {
+                        dots_to_modify.push(other);
+                    }
+                } else {
+                    dots_to_modify.push(DotModification {
+                        id: dot.id,
+                        delta_velocity: None,
+                        delta_position: Some(next_pos - dot.position),
+                    });
                 }
             }
         }
 
         for dot_to_modify in dots_to_modify {
             let dot = self.palette.get_mut(&dot_to_modify.id).unwrap();
-            dot.velocity = dot_to_modify.next_velocity;
-            if let Some(next_pos) = dot_to_modify.next_position {
-                dot.next_position = Some(next_pos);
+            if let Some(next_vel) = dot_to_modify.delta_velocity {
+                dot.velocity += next_vel;
             }
-        }
-
-        for dot in self.palette.values_mut() {
-            dot.position = dot.next_position.take().expect(
-                "Next position not set!",
-            );
+            if let Some(next_pos) = dot_to_modify.delta_position {
+                dot.position += next_pos;
+            }
         }
 
         self.write_dots_to_grid();
@@ -200,7 +212,7 @@ impl Game {
     fn write_dots_to_grid(&mut self) {
         self.canvas.clear();
         for dot in self.palette.values_mut() {
-            match self.canvas.set(dot.position.to_rounded_usize(), Some(dot.into())) {
+            match self.canvas.set(dot.position.clamp_to_resolution(self.resolution).to_rounded_usize(), Some(dot.into())) {
                 Err(CanvasError::CoordOutOfBounds) => println!(
                     "WARNING: Tried to write a dot to canvas that was out of bounds:\n{:?}",
                     dot

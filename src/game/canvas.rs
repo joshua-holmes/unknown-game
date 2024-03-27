@@ -2,7 +2,7 @@ use std::collections::VecDeque;
 
 use crate::rendering::glsl_types::Resolution;
 
-use super::{dot::{Dot, DotCollision, CollisionReport, CanvasDot}, geometry::Vec2, material::Material, FRICTION};
+use super::{dot::{Dot, CollisionReport, DotModification, CanvasDot}, geometry::Vec2, material::Material, FRICTION};
 
 #[derive(Debug)]
 pub enum CanvasError {
@@ -13,6 +13,12 @@ pub enum CanvasError {
 pub struct RayPoint {
     pub coord: Vec2<usize>,
     pub dot: Option<CanvasDot>,
+}
+
+#[derive(Debug)]
+pub enum RayEnd {
+    InBounds,
+    OutOfBounds,
 }
 
 pub struct Canvas {
@@ -71,12 +77,12 @@ impl Canvas {
             direction_in_degrees.to_radians().cos() * self.resolution.width as f64 + ray_start.x,
             direction_in_degrees.to_radians().sin() * self.resolution.height as f64 + ray_start.y,
         );
-        self.cast_ray(ray_start, ray_end)
+        self.cast_ray(ray_start, ray_end).0
     }
 
     /// Casts a ray and captures every point in the path of the ray in order.
     /// Start of ray is exclusive, end is inclusive. Casts a ray and creates a new ray cast object.
-    pub fn cast_ray(&self, ray_start: Vec2<f64>, ray_end: Vec2<f64>) -> VecDeque<RayPoint> {
+    pub fn cast_ray(&self, ray_start: Vec2<f64>, ray_end: Vec2<f64>) -> (VecDeque<RayPoint>, RayEnd) {
         let mut path = VecDeque::new();
 
         let diff = ray_end - ray_start;
@@ -118,8 +124,7 @@ impl Canvas {
                     dot: dot_maybe,
                 }),
                 Err(CanvasError::CoordOutOfBounds) => {
-                    println!("Ray cast blast got cast where it won't last! Some features may not function properly.");
-                    return path;
+                    return (path, RayEnd::OutOfBounds);
                 }
             }
             let end_of_ray_reached =
@@ -129,36 +134,54 @@ impl Canvas {
             }
         }
 
-        path
+        (path, RayEnd::InBounds)
     }
 
     pub fn check_for_dot_collision(
         &self,
         this_dot: &Dot,
-    ) -> Option<DotCollision> {
-        let next_pos = this_dot.next_position.unwrap();
-        let ray = self.cast_ray(this_dot.position, next_pos);
+        next_pos: Vec2<f64>,
+    ) -> Option<CollisionReport> {
+        let (ray, ray_end) = self.cast_ray(this_dot.position, next_pos);
         let mut prev_coord = this_dot.position.to_rounded_usize();
         for point in ray {
             if let Some(target_dot) = point.dot {
                 if this_dot.id != target_dot.id {
                     let diff = this_dot.velocity - target_dot.velocity;
-                    return Some(DotCollision {
-                        this: CollisionReport {
+                    return Some(CollisionReport {
+                        this: DotModification {
                             id: this_dot.id,
-                            next_velocity: (this_dot.velocity - diff) * (1. - FRICTION),
-                            next_position: Some(prev_coord.into_f64()),
+                            delta_velocity: Some(
+                                ((this_dot.velocity - diff) * (1. - FRICTION)) - this_dot.velocity
+                            ),
+                            delta_position: Some(
+                                prev_coord.into_f64() - this_dot.position
+                            ),
                         },
-                        other: CollisionReport {
+                        other: Some(DotModification {
                             id: target_dot.id,
-                            next_velocity: (target_dot.velocity - diff.to_negative()) * (1. - FRICTION),
-                            next_position: None
-                        }
+                            delta_velocity: Some(
+                                ((target_dot.velocity - diff.to_negative()) * (1. - FRICTION)) - target_dot.velocity
+                            ),
+                            delta_position: None
+                        })
                     });
+                } else {
+                    prev_coord = point.coord;
                 }
             } else {
                 prev_coord = point.coord;
             }
+        }
+        if let RayEnd::OutOfBounds = ray_end {
+            return Some(CollisionReport {
+                this: DotModification {
+                    id: this_dot.id,
+                    delta_velocity: Some(this_dot.velocity.to_negative()),
+                    delta_position: Some(prev_coord.into_f64() - this_dot.position),
+                },
+                other: None,
+            });
         }
         None
     }
@@ -404,9 +427,6 @@ mod tests {
         let canvas = setup_canvas(test_data);
         let path = canvas.cast_ray_to_edge(ray_start, direction_in_degrees);
 
-        for c in path.iter() {
-            println!("HERE {:?}", c);
-        }
         assert_eq!(2, path.len());
         assert_eq!(
             Vec2::new(1, 0),
