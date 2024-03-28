@@ -88,14 +88,14 @@ impl Canvas {
         let diff = ray_end - ray_start;
         let direction = diff / diff.abs();
 
-        let find_next_coord = |cur_coord: Vec2<usize>| {
+        let find_next_coord = |cur_coord: Vec2<isize>| {
             let horizontal_coord =
-                Vec2::new((cur_coord.x as f64 + direction.x) as usize, cur_coord.y);
+                Vec2::new((cur_coord.x as f64 + direction.x) as isize, cur_coord.y);
             let vertical_coord =
-                Vec2::new(cur_coord.x, (cur_coord.y as f64 + direction.y) as usize);
+                Vec2::new(cur_coord.x, (cur_coord.y as f64 + direction.y) as isize);
             let diagonal = Vec2::new(
-                (cur_coord.x as f64 + direction.x) as usize,
-                (cur_coord.y as f64 + direction.y) as usize,
+                (cur_coord.x as f64 + direction.x) as isize,
+                (cur_coord.y as f64 + direction.y) as isize,
             );
             let horizontal_to_end = (ray_end
                 - Vec2::new(horizontal_coord.x as f64, horizontal_coord.y as f64))
@@ -113,14 +113,17 @@ impl Canvas {
         };
 
         let mut next_coord = Some(find_next_coord(Vec2::new(
-            ray_start.x.round() as usize,
-            ray_start.y.round() as usize,
+            ray_start.x.round() as isize,
+            ray_start.y.round() as isize,
         )));
 
         while let Some(coord) = next_coord.take() {
-            match self.get(coord) {
+            if coord.x < 0 || coord.y < 0 {
+                return (path, RayEnd::OutOfBounds);
+            }
+            match self.get(coord.into()) {
                 Ok(dot_maybe) => path.push_back(RayPoint {
-                    coord,
+                    coord: coord.into(),
                     dot: dot_maybe,
                 }),
                 Err(CanvasError::CoordOutOfBounds) => {
@@ -128,7 +131,7 @@ impl Canvas {
                 }
             }
             let end_of_ray_reached =
-                coord == Vec2::new(ray_end.x.round() as usize, ray_end.y.round() as usize);
+                coord == Vec2::new(ray_end.x.round() as isize, ray_end.y.round() as isize);
             if !end_of_ray_reached {
                 next_coord = Some(find_next_coord(coord));
             }
@@ -166,12 +169,9 @@ impl Canvas {
                             delta_position: None
                         })
                     });
-                } else {
-                    prev_coord = point.coord;
                 }
-            } else {
-                prev_coord = point.coord;
             }
+            prev_coord = point.coord;
         }
         if let RayEnd::OutOfBounds = ray_end {
             return Some(CollisionReport {

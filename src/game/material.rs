@@ -10,7 +10,7 @@ impl Material {
         match self {
             Material::EmptySpace => MaterialProperties { drag: 0. },
             Material::Sand => MaterialProperties { drag: 0. },
-            Material::Dirt => MaterialProperties { drag: 2. },
+            Material::Dirt => MaterialProperties { drag: 0. },
             Material::Water => MaterialProperties { drag: 0. },
         }
     }

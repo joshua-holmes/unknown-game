@@ -55,15 +55,13 @@ impl Game {
             Vec2::new(0., 100.),
         );
         palette.insert(dot.id, dot);
-        for i in 100..101 {
-            let dot = Dot::new(
-                &mut dot_id_generator,
-                Material::Dirt,
-                Vec2::new(i as f64, 499.),
-                Vec2::new(0., -100.),
-            );
-            palette.insert(dot.id, dot);
-        }
+        let dot = Dot::new(
+            &mut dot_id_generator,
+            Material::Dirt,
+            Vec2::new(100., 499.),
+            Vec2::new(0., -200.),
+        );
+        palette.insert(dot.id, dot);
 
         let mut game = Self {
             canvas,
@@ -97,21 +95,21 @@ impl Game {
         for dot in self.palette.values_mut() {
             let offset_from_drag = dot.find_pos_offset_from_drag();
             let next_pos = dot.find_next_position(self.resolution, self.delta_time, offset_from_drag);
-            if next_pos.to_rounded_usize() != dot.position.to_rounded_usize() {
+            if next_pos.to_rounded_isize() != dot.position.to_rounded_isize() {
                 let collision_check = self.canvas.check_for_dot_collision(&dot, next_pos);
                 if let Some(collided_dots) = collision_check {
                     dots_to_modify.push(collided_dots.this);
                     if let Some(other) = collided_dots.other {
                         dots_to_modify.push(other);
                     }
-                } else {
-                    dots_to_modify.push(DotModification {
-                        id: dot.id,
-                        delta_velocity: None,
-                        delta_position: Some(next_pos - dot.position),
-                    });
+                    continue;
                 }
             }
+            dots_to_modify.push(DotModification {
+                id: dot.id,
+                delta_velocity: None,
+                delta_position: Some(next_pos - dot.position),
+            });
         }
 
         for dot_to_modify in dots_to_modify {

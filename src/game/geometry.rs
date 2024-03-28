@@ -128,6 +128,10 @@ impl Vec2<f64> {
         Vec2::new(self.x.round() as usize, self.y.round() as usize)
     }
 
+    pub fn to_rounded_isize(&self) -> Vec2<isize> {
+        Vec2::new(self.x.round() as isize, self.y.round() as isize)
+    }
+
     pub fn angle_in_degrees(&self) -> f64 {
         (self.y.atan2(self.x).to_degrees() + 360.) % 360.
     }
@@ -194,6 +198,22 @@ where
         Self {
             x: T::from(value.width),
             y: T::from(value.height),
+        }
+    }
+}
+impl From<Vec2<usize>> for Vec2<isize> {
+    fn from(value: Vec2<usize>) -> Self {
+        Self {
+            x: value.x as isize,
+            y: value.y as isize,
+        }
+    }
+}
+impl From<Vec2<isize>> for Vec2<usize> {
+    fn from(value: Vec2<isize>) -> Self {
+        Self {
+            x: value.x as usize,
+            y: value.y as usize,
         }
     }
 }
