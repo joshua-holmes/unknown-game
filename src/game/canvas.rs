@@ -147,9 +147,12 @@ impl Canvas {
     ) -> Option<CollisionReport> {
         let (ray, ray_end) = self.cast_ray(this_dot.position, next_pos);
         let mut prev_coord = this_dot.position.to_rounded_usize();
+        let mut collided_with_dot_touching_edge = false;
         for point in ray {
             if let Some(target_dot) = point.dot {
-                if this_dot.id != target_dot.id {
+                let ray_to_edge = self.cast_ray_to_edge(prev_coord.into_f64(), (next_pos - this_dot.position).angle_in_degrees());
+                let has_gaps = ray_to_edge.iter().any(|p| p.dot.is_none());
+                if has_gaps {
                     let diff = this_dot.velocity - target_dot.velocity;
                     return Some(CollisionReport {
                         this: DotModification {
@@ -169,11 +172,15 @@ impl Canvas {
                             delta_position: None
                         })
                     });
+                } else {
+                    collided_with_dot_touching_edge = true;
+                    break;
                 }
             }
             prev_coord = point.coord;
         }
-        if let RayEnd::OutOfBounds = ray_end {
+        let out_of_bounds = if let RayEnd::OutOfBounds = ray_end { true } else { false };
+        if out_of_bounds || collided_with_dot_touching_edge {
             return Some(CollisionReport {
                 this: DotModification {
                     id: this_dot.id,

@@ -1,5 +1,5 @@
 use std::{
-    collections::HashMap,
+    collections::{HashMap, HashSet},
     time::{Duration, Instant},
 };
 
@@ -36,30 +36,18 @@ impl Game {
         // Set some dots for testing
         let mut palette = HashMap::with_capacity((height * width) as usize);
 
-        // for i in 0..10 {
-        //     for j in (0 + i)..(50 - i) {
-        //         let dot = Dot::new(
-        //             &mut dot_id_generator,
-        //             Material::Water,
-        //             Vec2::new(100. + j as f64, 498. - i as f64),
-        //             Vec2::new(0., 0.),
-        //         );
-        //         palette.insert(dot.id, dot);
-        //     }
-        // }
-        //
         let dot = Dot::new(
             &mut dot_id_generator,
             Material::Water,
-            Vec2::new(100., 0.),
-            Vec2::new(0., 100.),
+            Vec2::new(51., 250.),
+            Vec2::new(20., 0.),
         );
         palette.insert(dot.id, dot);
         let dot = Dot::new(
             &mut dot_id_generator,
-            Material::Dirt,
-            Vec2::new(100., 499.),
-            Vec2::new(0., -200.),
+            Material::Water,
+            Vec2::new(250., 250.),
+            Vec2::new(-20., 0.),
         );
         palette.insert(dot.id, dot);
 
@@ -90,18 +78,25 @@ impl Game {
             dot.velocity = dot.find_next_velocity(delta_time);
         }
 
-        // find position
+        // find position & handle collisions
         let mut dots_to_modify = Vec::new();
+        let mut visited_collisions = HashSet::new();
         for dot in self.palette.values_mut() {
             let offset_from_drag = dot.find_pos_offset_from_drag();
             let next_pos = dot.find_next_position(self.resolution, self.delta_time, offset_from_drag);
             if next_pos.to_rounded_isize() != dot.position.to_rounded_isize() {
                 let collision_check = self.canvas.check_for_dot_collision(&dot, next_pos);
                 if let Some(collided_dots) = collision_check {
-                    dots_to_modify.push(collided_dots.this);
                     if let Some(other) = collided_dots.other {
+                        let mut ids = [collided_dots.this.id, other.id];
+                        ids.sort();
+                        let key = ids.iter().map(|id| id.to_string()).collect::<Vec<_>>().join("|");
+                        if !visited_collisions.insert(key) {
+                            continue;
+                        }
                         dots_to_modify.push(other);
                     }
+                    dots_to_modify.push(collided_dots.this);
                     continue;
                 }
             }
@@ -112,6 +107,7 @@ impl Game {
             });
         }
 
+        // apply position & collision changes
         for dot_to_modify in dots_to_modify {
             let dot = self.palette.get_mut(&dot_to_modify.id).unwrap();
             if let Some(next_vel) = dot_to_modify.delta_velocity {
@@ -158,7 +154,7 @@ impl Game {
                             // add new dot to palette, error if dot is already there
                             let new_dot = Dot::new(
                                 &mut self.dot_id_generator,
-                                Material::Sand,
+                                Material::Dirt,
                                 point.into_f64(),
                                 Vec2::new(0., 0.),
                             );
