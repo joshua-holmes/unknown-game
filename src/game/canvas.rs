@@ -157,18 +157,14 @@ impl Canvas {
                     return Some(CollisionReport {
                         this: DotModification {
                             id: this_dot.id,
-                            delta_velocity: Some(
-                                ((this_dot.velocity - diff) * (1. - FRICTION)) - this_dot.velocity
-                            ),
+                            delta_velocity: Some(diff.to_negative()),
                             delta_position: Some(
                                 prev_coord.into_f64() - this_dot.position
                             ),
                         },
                         other: Some(DotModification {
                             id: target_dot.id,
-                            delta_velocity: Some(
-                                ((target_dot.velocity - diff.to_negative()) * (1. - FRICTION)) - target_dot.velocity
-                            ),
+                            delta_velocity: Some(diff),
                             delta_position: None
                         })
                     });
