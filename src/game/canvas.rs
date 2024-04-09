@@ -2,7 +2,11 @@ use std::collections::VecDeque;
 
 use crate::rendering::glsl_types::Resolution;
 
-use super::{dot::{Dot, CollisionReport, DotModification, CanvasDot}, geometry::Vec2, material::Material, FRICTION};
+use super::{
+    dot::{CanvasDot, CollisionReport, Dot, DotModification},
+    geometry::Vec2,
+    material::Material,
+};
 
 #[derive(Debug)]
 pub enum CanvasError {
@@ -53,7 +57,7 @@ impl Canvas {
             .clone())
     }
 
-    pub fn set(&mut self, coord: Vec2<usize>, value: Option<CanvasDot>) -> Result<(), CanvasError> {
+    pub fn get_mut(&mut self, coord: Vec2<usize>) -> Result<&mut Option<CanvasDot>, CanvasError> {
         let dot = self
             .grid
             .get_mut(coord.y)
@@ -61,9 +65,7 @@ impl Canvas {
             .get_mut(coord.x)
             .ok_or(CanvasError::CoordOutOfBounds)?;
 
-        *dot = value;
-
-        Ok(())
+        Ok(dot)
     }
 
     pub fn clear(&mut self) {
@@ -72,7 +74,11 @@ impl Canvas {
         }
     }
 
-    pub fn cast_ray_to_edge(&self, ray_start: Vec2<f64>, direction_in_degrees: f64) -> VecDeque<RayPoint> {
+    pub fn cast_ray_to_edge(
+        &self,
+        ray_start: Vec2<f64>,
+        direction_in_degrees: f64,
+    ) -> VecDeque<RayPoint> {
         let ray_end = Vec2::new(
             direction_in_degrees.to_radians().cos() * self.resolution.width as f64 + ray_start.x,
             direction_in_degrees.to_radians().sin() * self.resolution.height as f64 + ray_start.y,
@@ -82,7 +88,11 @@ impl Canvas {
 
     /// Casts a ray and captures every point in the path of the ray in order.
     /// Start of ray is exclusive, end is inclusive. Casts a ray and creates a new ray cast object.
-    pub fn cast_ray(&self, ray_start: Vec2<f64>, ray_end: Vec2<f64>) -> (VecDeque<RayPoint>, RayEnd) {
+    pub fn cast_ray(
+        &self,
+        ray_start: Vec2<f64>,
+        ray_end: Vec2<f64>,
+    ) -> (VecDeque<RayPoint>, RayEnd) {
         let mut path = VecDeque::new();
 
         let diff = ray_end - ray_start;
@@ -146,45 +156,49 @@ impl Canvas {
         next_pos: Vec2<f64>,
     ) -> Option<CollisionReport> {
         let (ray, ray_end) = self.cast_ray(this_dot.position, next_pos);
-        let mut prev_coord = this_dot.position.to_rounded_usize();
-        let mut collided_with_dot_touching_edge = false;
-        for point in ray {
-            if let Some(target_dot) = point.dot {
-                let ray_to_edge = self.cast_ray_to_edge(prev_coord.into_f64(), (next_pos - this_dot.position).angle_in_degrees());
-                let has_gaps = ray_to_edge.iter().any(|p| p.dot.is_none());
+        let this_dot_coord = this_dot.position.to_rounded_usize();
+        let mut prev_point = &RayPoint {
+            coord: this_dot_coord,
+            dot: self.get(this_dot_coord).unwrap(),
+        };
+        let stop_dot = Some(CollisionReport {
+            this: DotModification {
+                id: this_dot.id,
+                delta_velocity: Some(this_dot.velocity.to_negative()),
+                delta_position: Some(prev_point.coord.into_f64() - this_dot.position),
+            },
+            other: None,
+        });
+        for point in ray.iter() {
+            if let Some(target_dot) = point.dot.as_ref() {
+                let has_gaps = self
+                    .cast_ray_to_edge(
+                        prev_point.coord.into_f64(),
+                        (next_pos - this_dot.position).angle_in_degrees(),
+                    )
+                    .iter()
+                    .any(|p| p.dot.is_none());
                 if has_gaps {
                     let diff = this_dot.velocity - target_dot.velocity;
                     return Some(CollisionReport {
                         this: DotModification {
                             id: this_dot.id,
                             delta_velocity: Some(diff.to_negative()),
-                            delta_position: Some(
-                                prev_coord.into_f64() - this_dot.position
-                            ),
+                            delta_position: Some(prev_point.coord.into_f64() - this_dot.position),
                         },
                         other: Some(DotModification {
                             id: target_dot.id,
                             delta_velocity: Some(diff),
-                            delta_position: None
-                        })
+                            delta_position: None,
+                        }),
                     });
-                } else {
-                    collided_with_dot_touching_edge = true;
-                    break;
                 }
+                return stop_dot;
             }
-            prev_coord = point.coord;
+            prev_point = point;
         }
-        let out_of_bounds = if let RayEnd::OutOfBounds = ray_end { true } else { false };
-        if out_of_bounds || collided_with_dot_touching_edge {
-            return Some(CollisionReport {
-                this: DotModification {
-                    id: this_dot.id,
-                    delta_velocity: Some(this_dot.velocity.to_negative()),
-                    delta_position: Some(prev_coord.into_f64() - this_dot.position),
-                },
-                other: None,
-            });
+        if let RayEnd::OutOfBounds = ray_end {
+            return stop_dot;
         }
         None
     }
@@ -192,16 +206,21 @@ impl Canvas {
 
 #[cfg(test)]
 mod tests {
-    use crate::{game::{
-        dot::Dot, geometry::Vec2, id_generator::IdGenerator,
-        material::Material, canvas::Canvas,
-    }, rendering::glsl_types::Resolution};
+    use crate::{
+        game::{
+            canvas::Canvas, dot::Dot, geometry::Vec2, id_generator::IdGenerator, material::Material,
+        },
+        rendering::glsl_types::Resolution,
+    };
 
     fn setup_canvas(test_data: Vec<Dot>) -> Canvas {
         const WIDTH: usize = 10;
         const HEIGHT: usize = 10;
 
-        let mut canvas = Canvas::new(Resolution { height: HEIGHT as i32, width: WIDTH as i32 });
+        let mut canvas = Canvas::new(Resolution {
+            height: HEIGHT as i32,
+            width: WIDTH as i32,
+        });
 
         for dot in test_data.iter() {
             let coord = Vec2::new(
@@ -413,19 +432,17 @@ mod tests {
         // *------> = 0 degrees
         //
         // # # # # #
-        // # n d  
-        // #   *  
+        // # n d
+        // #   *
         let ray_start = Vec2::new(1., 1.);
         let direction_in_degrees = 247.5;
         let mut dot_id_generator = IdGenerator::new();
-        let test_data = vec![
-            Dot::new(
-                &mut dot_id_generator,
-                Material::Sand,
-                Vec2::new(1., 0.),
-                Vec2::new(0., 0.),
-            ),
-        ];
+        let test_data = vec![Dot::new(
+            &mut dot_id_generator,
+            Material::Sand,
+            Vec2::new(1., 0.),
+            Vec2::new(0., 0.),
+        )];
 
         let canvas = setup_canvas(test_data);
         let path = canvas.cast_ray_to_edge(ray_start, direction_in_degrees);

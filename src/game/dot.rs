@@ -35,12 +35,13 @@ impl From<&mut Dot> for CanvasDot {
     }
 }
 
+#[derive(Debug, Clone, Copy)]
 pub struct CollisionReport {
     pub this: DotModification,
     pub other: Option<DotModification>,
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone, Copy)]
 pub struct DotModification {
     pub id: Id,
     pub delta_velocity: Option<Vec2<f64>>,
@@ -71,7 +72,7 @@ impl Dot {
         }
     }
 
-    pub fn find_next_position(&mut self, resolution: Resolution, delta_time: Duration, offset: Vec2<f64>) -> Vec2<f64> {
+    pub fn find_next_position(&self, delta_time: Duration) -> Vec2<f64> {
         // TODO: Add offset back in when physics issues are worked out
         self.velocity * delta_time.as_secs_f64() + self.position
     }
