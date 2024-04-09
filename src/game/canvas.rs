@@ -178,7 +178,7 @@ impl Canvas {
                     )
                     .iter()
                     .any(|p| p.dot.is_none());
-                if has_gaps {
+                if has_gaps && this_dot.velocity.pythagorean_theorem() > target_dot.velocity.pythagorean_theorem() {
                     let diff = this_dot.velocity - target_dot.velocity;
                     return Some(CollisionReport {
                         this: DotModification {
