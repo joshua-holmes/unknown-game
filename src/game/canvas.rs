@@ -14,9 +14,9 @@ pub enum CanvasError {
 }
 
 #[derive(Debug)]
-pub struct RayPoint {
+pub struct RayPoint<'a> {
     pub coord: Vec2<usize>,
-    pub dot: Option<CanvasDot>,
+    pub dot: Option<&'a CanvasDot>,
 }
 
 #[derive(Debug)]
@@ -47,25 +47,22 @@ impl Canvas {
             .map(|maybe_dot| maybe_dot.map_or(Material::EmptySpace as u8, |dot| dot.material as u8))
     }
 
-    pub fn get(&self, coord: Vec2<usize>) -> Result<Option<CanvasDot>, CanvasError> {
+    pub fn get(&self, coord: Vec2<usize>) -> Result<&Option<CanvasDot>, CanvasError> {
         Ok(self
             .grid
             .get(coord.y)
             .ok_or(CanvasError::CoordOutOfBounds)?
             .get(coord.x)
-            .ok_or(CanvasError::CoordOutOfBounds)?
-            .clone())
+            .ok_or(CanvasError::CoordOutOfBounds)?)
     }
 
     pub fn get_mut(&mut self, coord: Vec2<usize>) -> Result<&mut Option<CanvasDot>, CanvasError> {
-        let dot = self
+        Ok(self
             .grid
             .get_mut(coord.y)
             .ok_or(CanvasError::CoordOutOfBounds)?
             .get_mut(coord.x)
-            .ok_or(CanvasError::CoordOutOfBounds)?;
-
-        Ok(dot)
+            .ok_or(CanvasError::CoordOutOfBounds)?)
     }
 
     pub fn clear(&mut self) {
@@ -134,7 +131,7 @@ impl Canvas {
             match self.get(coord.into()) {
                 Ok(dot_maybe) => path.push_back(RayPoint {
                     coord: coord.into(),
-                    dot: dot_maybe,
+                    dot: dot_maybe.as_ref(),
                 }),
                 Err(CanvasError::CoordOutOfBounds) => {
                     return (path, RayEnd::OutOfBounds);
@@ -159,7 +156,7 @@ impl Canvas {
         let this_dot_coord = this_dot.position.to_rounded_usize();
         let mut prev_point = &RayPoint {
             coord: this_dot_coord,
-            dot: self.get(this_dot_coord).unwrap(),
+            dot: self.get(this_dot_coord).unwrap().as_ref(),
         };
         let stop_dot = Some(CollisionReport {
             this: DotModification {
@@ -178,7 +175,10 @@ impl Canvas {
                     )
                     .iter()
                     .any(|p| p.dot.is_none());
-                if has_gaps && this_dot.velocity.pythagorean_theorem() > target_dot.velocity.pythagorean_theorem() {
+                if has_gaps
+                    && this_dot.velocity.pythagorean_theorem()
+                        > target_dot.velocity.pythagorean_theorem()
+                {
                     let diff = this_dot.velocity - target_dot.velocity;
                     return Some(CollisionReport {
                         this: DotModification {
