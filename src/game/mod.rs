@@ -2,7 +2,7 @@ use std::time::Duration;
 
 use crate::rendering::glsl_types::Resolution;
 
-use self::geometry::Vec2;
+use self::vec2::Vec2;
 
 pub mod dot;
 pub mod geometry;
@@ -11,6 +11,7 @@ pub mod rng;
 pub mod enums;
 pub mod id_generator;
 pub mod canvas;
+pub mod vec2;
 mod global_game_object;
 
 pub use global_game_object::Game;

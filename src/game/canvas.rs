@@ -4,7 +4,7 @@ use crate::rendering::glsl_types::Resolution;
 
 use super::{
     dot::{CanvasDot, CollisionReport, Dot, DotModification},
-    geometry::Vec2,
+    vec2::Vec2,
     material::Material,
 };
 

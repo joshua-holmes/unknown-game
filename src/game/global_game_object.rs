@@ -11,7 +11,7 @@ use super::{
     canvas::{Canvas, CanvasError},
     dot::{Dot, DotModification},
     enums::CoordConversion,
-    geometry::Vec2,
+    vec2::Vec2,
     id_generator::{Id, IdGenerator},
     material::Material,
     CURSOR_SIZE, DELAY_BETWEEN_DOTS, INITIAL_CANVAS_RESOLUTION,

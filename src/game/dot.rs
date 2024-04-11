@@ -1,9 +1,9 @@
 use std::time::{Duration, Instant};
 
-use crate::{game::rng, rendering::glsl_types::Resolution};
+use crate::game::rng;
 
 use super::{
-    geometry::Vec2,
+    vec2::Vec2,
     id_generator::{Id, IdGenerator},
     material::Material,
     GRAVITY,
