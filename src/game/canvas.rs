@@ -96,6 +96,7 @@ impl Canvas {
         let direction = diff / diff.abs();
 
         let find_next_coord = |cur_coord: Vec2<isize>| {
+            // candidates for next coordinate
             let horizontal_coord =
                 Vec2::new((cur_coord.x as f64 + direction.x) as isize, cur_coord.y);
             let vertical_coord =
@@ -104,15 +105,27 @@ impl Canvas {
                 (cur_coord.x as f64 + direction.x) as isize,
                 (cur_coord.y as f64 + direction.y) as isize,
             );
+
+            // measure distance of candidates from start and end of ray
+            let horizontal_to_start = (ray_start
+                - Vec2::new(horizontal_coord.x as f64, horizontal_coord.y as f64))
+            .pythagorean_theorem().abs();
             let horizontal_to_end = (ray_end
                 - Vec2::new(horizontal_coord.x as f64, horizontal_coord.y as f64))
-            .pythagorean_theorem();
+            .pythagorean_theorem().abs();
+            let vertical_to_start = (ray_start
+                - Vec2::new(vertical_coord.x as f64, vertical_coord.y as f64))
+            .pythagorean_theorem().abs();
             let vertical_to_end = (ray_end
                 - Vec2::new(vertical_coord.x as f64, vertical_coord.y as f64))
-            .pythagorean_theorem();
-            if horizontal_to_end < vertical_to_end {
+            .pythagorean_theorem().abs();
+
+            // find coord that is closest to both start and end points
+            let horizontal_sum = horizontal_to_start + horizontal_to_end;
+            let vertical_sum = vertical_to_start + vertical_to_end;
+            if horizontal_sum < vertical_sum {
                 horizontal_coord
-            } else if horizontal_to_end > vertical_to_end {
+            } else if horizontal_sum > vertical_sum {
                 vertical_coord
             } else {
                 diagonal
