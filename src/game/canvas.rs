@@ -221,12 +221,12 @@ impl Canvas {
 mod tests {
     use crate::{
         game::{
-            canvas::Canvas, dot::Dot, geometry::Vec2, id_generator::IdGenerator, material::Material,
+            canvas::{Canvas, CanvasError}, dot::Dot, vec2::Vec2, id_generator::IdGenerator, material::Material,
         },
         rendering::glsl_types::Resolution,
     };
 
-    fn setup_canvas(test_data: Vec<Dot>) -> Canvas {
+    fn setup_canvas(test_data: Vec<Dot>) -> Result<Canvas, CanvasError> {
         const WIDTH: usize = 10;
         const HEIGHT: usize = 10;
 
@@ -243,10 +243,18 @@ mod tests {
             if coord.x > WIDTH || coord.y > HEIGHT {
                 panic!("Test data was not setup correctly, dot placed out of bounds.");
             }
-            canvas.set(coord, Some(dot.into())).unwrap();
+
+            let canvas_dot = canvas
+                .grid
+                .get_mut(coord.y)
+                .ok_or(CanvasError::CoordOutOfBounds)?
+                .get_mut(coord.x)
+                .ok_or(CanvasError::CoordOutOfBounds)?;
+            
+            *canvas_dot = Some(dot.into());
         }
 
-        canvas
+        Ok(canvas)
     }
 
     #[test]
@@ -271,8 +279,8 @@ mod tests {
 
         let expected_id = test_data[1].id;
 
-        let canvas = setup_canvas(test_data);
-        let path = canvas.cast_ray(ray_start, ray_end);
+        let canvas = setup_canvas(test_data).unwrap();
+        let path = canvas.cast_ray(ray_start, ray_end).0;
 
         assert_eq!(
             1,
@@ -312,8 +320,8 @@ mod tests {
             ),
         ];
 
-        let canvas = setup_canvas(test_data);
-        let path = canvas.cast_ray(ray_start, ray_end);
+        let canvas = setup_canvas(test_data).unwrap();
+        let path = canvas.cast_ray(ray_start, ray_end).0;
 
         assert_eq!(3, path.len());
         assert!(
@@ -359,8 +367,8 @@ mod tests {
         let middle_dot_id_1 = test_data[1].id;
         let middle_dot_id_2 = test_data[2].id;
 
-        let canvas = setup_canvas(test_data);
-        let path = canvas.cast_ray(ray_start, ray_end);
+        let canvas = setup_canvas(test_data).unwrap();
+        let path = canvas.cast_ray(ray_start, ray_end).0;
 
         assert_eq!(3, path.len());
         assert_eq!(
@@ -420,8 +428,8 @@ mod tests {
             ),
         ];
 
-        let canvas = setup_canvas(test_data);
-        let path = canvas.cast_ray(ray_start, ray_end);
+        let canvas = setup_canvas(test_data).unwrap();
+        let path = canvas.cast_ray(ray_start, ray_end).0;
 
         assert_eq!(2, path.len());
         assert!(
@@ -457,10 +465,10 @@ mod tests {
             Vec2::new(0., 0.),
         )];
 
-        let canvas = setup_canvas(test_data);
+        let canvas = setup_canvas(test_data).unwrap();
         let path = canvas.cast_ray_to_edge(ray_start, direction_in_degrees);
 
-        assert_eq!(2, path.len());
+        assert_eq!(2, path.len(), "PATH: {:?}", path);
         assert_eq!(
             Vec2::new(1, 0),
             path[0].coord,
