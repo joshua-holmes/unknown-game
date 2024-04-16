@@ -4,8 +4,8 @@ use crate::rendering::glsl_types::Resolution;
 
 use super::{
     dot::{CanvasDot, CollisionReport, Dot, DotModification},
-    vec2::Vec2,
     material::Material,
+    vec2::Vec2,
 };
 
 #[derive(Debug)]
@@ -107,18 +107,22 @@ impl Canvas {
             );
 
             // measure distance of candidates from start and end of ray
-            let horizontal_to_start = (ray_start
-                - Vec2::new(horizontal_coord.x as f64, horizontal_coord.y as f64))
-            .pythagorean_theorem().abs();
-            let horizontal_to_end = (ray_end
-                - Vec2::new(horizontal_coord.x as f64, horizontal_coord.y as f64))
-            .pythagorean_theorem().abs();
-            let vertical_to_start = (ray_start
-                - Vec2::new(vertical_coord.x as f64, vertical_coord.y as f64))
-            .pythagorean_theorem().abs();
-            let vertical_to_end = (ray_end
-                - Vec2::new(vertical_coord.x as f64, vertical_coord.y as f64))
-            .pythagorean_theorem().abs();
+            let horizontal_to_start = (ray_start.to_rounded_isize() - horizontal_coord)
+                .into_f64()
+                .pythagorean_theorem()
+                .abs();
+            let horizontal_to_end = (ray_end.to_rounded_isize() - horizontal_coord)
+                .into_f64()
+                .pythagorean_theorem()
+                .abs();
+            let vertical_to_start = (ray_start.to_rounded_isize() - vertical_coord)
+                .into_f64()
+                .pythagorean_theorem()
+                .abs();
+            let vertical_to_end = (ray_end.to_rounded_isize() - vertical_coord)
+                .into_f64()
+                .pythagorean_theorem()
+                .abs();
 
             // find coord that is closest to both start and end points
             let horizontal_sum = horizontal_to_start + horizontal_to_end;
