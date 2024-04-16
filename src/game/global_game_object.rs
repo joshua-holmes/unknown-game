@@ -39,16 +39,9 @@ impl Game {
 
         let dot = Dot::new(
             &mut dot_id_generator,
-            Material::Water,
-            Vec2::new(51., 250.),
-            Vec2::new(20., 0.),
-        );
-        palette.insert(dot.id, dot);
-        let dot = Dot::new(
-            &mut dot_id_generator,
             Material::Sand,
-            Vec2::new(250., 250.),
-            Vec2::new(-20., 0.),
+            Vec2::new(51., 0.),
+            Vec2::new(20., 0.),
         );
         palette.insert(dot.id, dot);
 
@@ -122,6 +115,8 @@ impl Game {
             }
             if let Some(next_pos) = dot_to_modify.delta_position {
                 dot.position += next_pos;
+                // println!("DELTA POS {:?}", next_pos);
+                // println!("NEW POS {:?}", dot.position);
             }
         }
 

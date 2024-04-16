@@ -94,6 +94,11 @@ impl Vec2<usize> {
         Vec2::new(self.x as f64, self.y as f64)
     }
 }
+impl Vec2<isize> {
+    pub fn into_f64(&self) -> Vec2<f64> {
+        Vec2::new(self.x as f64, self.y as f64)
+    }
+}
 impl<T> From<PhysicalPosition<T>> for Vec2<T> {
     fn from(value: PhysicalPosition<T>) -> Self {
         Self {

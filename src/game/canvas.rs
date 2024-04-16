@@ -175,14 +175,16 @@ impl Canvas {
             coord: this_dot_coord,
             dot: self.get(this_dot_coord).unwrap().as_ref(),
         };
-        let stop_dot = Some(CollisionReport {
-            this: DotModification {
-                id: this_dot.id,
-                delta_velocity: Some(this_dot.velocity.to_negative()),
-                delta_position: Some(prev_point.coord.into_f64() - this_dot.position),
-            },
-            other: None,
-        });
+        let stop_dot = |prev_point: &RayPoint<'_>| {
+            CollisionReport {
+                this: DotModification {
+                    id: this_dot.id,
+                    delta_velocity: Some(this_dot.velocity.to_negative()),
+                    delta_position: Some(prev_point.coord.into_f64() - this_dot.position),
+                },
+                other: None,
+            }
+        };
         for point in ray.iter() {
             if let Some(target_dot) = point.dot.as_ref() {
                 let has_gaps = self
@@ -210,12 +212,12 @@ impl Canvas {
                         }),
                     });
                 }
-                return stop_dot;
+                return Some(stop_dot(prev_point));
             }
             prev_point = point;
         }
         if let RayEnd::OutOfBounds = ray_end {
-            return stop_dot;
+            return Some(stop_dot(prev_point));
         }
         None
     }
@@ -225,7 +227,11 @@ impl Canvas {
 mod tests {
     use crate::{
         game::{
-            canvas::{Canvas, CanvasError}, dot::Dot, vec2::Vec2, id_generator::IdGenerator, material::Material,
+            canvas::{Canvas, CanvasError},
+            dot::Dot,
+            id_generator::IdGenerator,
+            material::Material,
+            vec2::Vec2,
         },
         rendering::glsl_types::Resolution,
     };
@@ -254,7 +260,7 @@ mod tests {
                 .ok_or(CanvasError::CoordOutOfBounds)?
                 .get_mut(coord.x)
                 .ok_or(CanvasError::CoordOutOfBounds)?;
-            
+
             *canvas_dot = Some(dot.into());
         }
 
