@@ -29,7 +29,8 @@ const GRAVITY: Vec2<f64> = Vec2 { x: 0., y: 100. };
 const DELAY_BETWEEN_DOTS: Duration = Duration::from_millis(50);
 
 // percentage of energy lost due to friction when 2 dots collide
-const FRICTION: f64 = 0.1;
+// acceptable range is 0.0 to 1.0, higher is more friction
+const FRICTION: f64 = 0.2;
 
 // size of cursor that spawns dots; this is the radius of the cursor
 const CURSOR_SIZE: f64 = 5.;

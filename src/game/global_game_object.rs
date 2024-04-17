@@ -14,7 +14,7 @@ use super::{
     vec2::Vec2,
     id_generator::{Id, IdGenerator},
     material::Material,
-    CURSOR_SIZE, DELAY_BETWEEN_DOTS, INITIAL_CANVAS_RESOLUTION,
+    CURSOR_SIZE, DELAY_BETWEEN_DOTS, INITIAL_CANVAS_RESOLUTION, FRICTION,
 };
 
 pub struct Game {
@@ -111,7 +111,7 @@ impl Game {
         for dot_to_modify in dots_to_modify {
             let dot = self.palette.get_mut(&dot_to_modify.id).unwrap();
             if let Some(next_vel) = dot_to_modify.delta_velocity {
-                dot.velocity += next_vel;
+                dot.velocity += next_vel * (1.0 - FRICTION);
             }
             if let Some(next_pos) = dot_to_modify.delta_position {
                 dot.position += next_pos;
