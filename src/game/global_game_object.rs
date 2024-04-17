@@ -41,9 +41,18 @@ impl Game {
             &mut dot_id_generator,
             Material::Sand,
             Vec2::new(351., 10.),
-            Vec2::new(0., 0.),
+            Vec2::new(100., 0.),
         );
         palette.insert(dot.id, dot);
+        for i in 0..width {
+            let dot = Dot::new(
+                &mut dot_id_generator,
+                Material::Dirt,
+                Vec2::new(i as f64, 499.),
+                Vec2::new(0., 0.),
+            );
+            palette.insert(dot.id, dot);
+        }
 
         let mut game = Self {
             canvas,

@@ -186,14 +186,13 @@ impl Canvas {
             dot: self.get(this_dot_coord).unwrap().as_ref(),
         };
         let find_delta_velocity = |ray_collision_direction: &TriDirection| -> Vec2<f64> {
-            match ray_collision_direction {
+            let dv = match ray_collision_direction {
                 TriDirection::Vertical => Vec2::new(0., this_dot.velocity.y),
                 TriDirection::Horizontal => Vec2::new(this_dot.velocity.x, 0.),
                 TriDirection::Diagonal => this_dot.velocity,
             }
-            .to_negative()
-                * 2.
-                * this_dot.material.properties().bounce
+            .to_negative();
+            dv + dv * this_dot.material.properties().bounce
         };
         for point in ray.iter() {
             if let Some(target_dot) = point.dot.as_ref() {
