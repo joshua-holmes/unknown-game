@@ -8,10 +8,22 @@ pub enum Material {
 impl Material {
     pub fn properties(&self) -> MaterialProperties {
         match self {
-            Material::EmptySpace => MaterialProperties { drag: 0. },
-            Material::Sand => MaterialProperties { drag: 0. },
-            Material::Dirt => MaterialProperties { drag: 0. },
-            Material::Water => MaterialProperties { drag: 0. },
+            Material::EmptySpace => MaterialProperties {
+                drag: 0.,
+                bounce: 0.,
+            },
+            Material::Sand => MaterialProperties {
+                drag: 0.,
+                bounce: 1.0,
+            },
+            Material::Dirt => MaterialProperties {
+                drag: 0.,
+                bounce: 0.,
+            },
+            Material::Water => MaterialProperties {
+                drag: 0.,
+                bounce: 0.,
+            },
         }
     }
 }
@@ -20,4 +32,8 @@ pub struct MaterialProperties {
     /// Higher number means more drag
     /// Terminal velocity is gravity / drag
     pub drag: f64,
+
+    /// Higher means more bounce
+    /// Range is 0.0 - 1.0 inclusive
+    pub bounce: f64,
 }

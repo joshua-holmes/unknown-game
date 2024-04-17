@@ -185,7 +185,7 @@ impl Canvas {
             coord: this_dot_coord,
             dot: self.get(this_dot_coord).unwrap().as_ref(),
         };
-        let find_delta_velocity = |ray_collision_direction: &TriDirection| {
+        let find_delta_velocity = |ray_collision_direction: &TriDirection| -> Vec2<f64> {
             match ray_collision_direction {
                 TriDirection::Vertical => Vec2::new(0., this_dot.velocity.y),
                 TriDirection::Horizontal => Vec2::new(this_dot.velocity.x, 0.),
@@ -193,6 +193,7 @@ impl Canvas {
             }
             .to_negative()
                 * 2.
+                * this_dot.material.properties().bounce
         };
         for point in ray.iter() {
             if let Some(target_dot) = point.dot.as_ref() {
@@ -220,7 +221,7 @@ impl Canvas {
                             delta_position: None,
                         }),
                     });
-                } 
+                }
                 let delta_velocity = find_delta_velocity(ray_collision_direction.as_ref().unwrap());
                 return Some(CollisionReport {
                     this: DotModification {
@@ -237,8 +238,6 @@ impl Canvas {
         // calculate delta velocity IF wall collision happened
         ray_collision_direction.map(|direction| {
             let delta_velocity = find_delta_velocity(&direction);
-            println!("HIIIII {:?}", direction);
-            println!("THEERE {:?}\n{:?}", this_dot.velocity, delta_velocity);
             CollisionReport {
                 this: DotModification {
                     id: this_dot.id,
