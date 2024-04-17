@@ -40,8 +40,8 @@ impl Game {
         let dot = Dot::new(
             &mut dot_id_generator,
             Material::Sand,
-            Vec2::new(51., 0.),
-            Vec2::new(20., 0.),
+            Vec2::new(51., 499.),
+            Vec2::new(200., 0.),
         );
         palette.insert(dot.id, dot);
 

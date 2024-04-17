@@ -4,6 +4,7 @@ use crate::rendering::glsl_types::Resolution;
 
 use super::{
     dot::{CanvasDot, CollisionReport, Dot, DotModification},
+    geometry::TriDirection,
     material::Material,
     vec2::Vec2,
 };
@@ -17,12 +18,6 @@ pub enum CanvasError {
 pub struct RayPoint<'a> {
     pub coord: Vec2<usize>,
     pub dot: Option<&'a CanvasDot>,
-}
-
-#[derive(Debug)]
-pub enum RayEnd {
-    InBounds,
-    OutOfBounds,
 }
 
 pub struct Canvas {
@@ -85,11 +80,12 @@ impl Canvas {
 
     /// Casts a ray and captures every point in the path of the ray in order.
     /// Start of ray is exclusive, end is inclusive. Casts a ray and creates a new ray cast object.
+    /// Returns a tuple where the first value is the ray and the second value is the direction of the first collision, with either a dot or wall.
     pub fn cast_ray(
         &self,
         ray_start: Vec2<f64>,
         ray_end: Vec2<f64>,
-    ) -> (VecDeque<RayPoint>, RayEnd) {
+    ) -> (VecDeque<RayPoint>, Option<TriDirection>) {
         let mut path = VecDeque::new();
 
         let diff = ray_end - ray_start;
@@ -128,11 +124,11 @@ impl Canvas {
             let horizontal_sum = horizontal_to_start + horizontal_to_end;
             let vertical_sum = vertical_to_start + vertical_to_end;
             if horizontal_sum < vertical_sum {
-                horizontal_coord
+                (horizontal_coord, TriDirection::Horizontal)
             } else if horizontal_sum > vertical_sum {
-                vertical_coord
+                (vertical_coord, TriDirection::Vertical)
             } else {
-                diagonal
+                (diagonal, TriDirection::Diagonal)
             }
         };
 
@@ -140,18 +136,32 @@ impl Canvas {
             ray_start.x.round() as isize,
             ray_start.y.round() as isize,
         )));
+        let mut collision_direction = None;
 
-        while let Some(coord) = next_coord.take() {
-            if coord.x < 0 || coord.y < 0 {
-                return (path, RayEnd::OutOfBounds);
+        while let Some((coord, direction)) = next_coord.take() {
+            if coord.x < 0 {
+                return (path, Some(TriDirection::Horizontal));
+            }
+            if coord.y < 0 {
+                return (path, Some(TriDirection::Vertical));
             }
             match self.get(coord.into()) {
-                Ok(dot_maybe) => path.push_back(RayPoint {
-                    coord: coord.into(),
-                    dot: dot_maybe.as_ref(),
-                }),
+                Ok(dot_maybe) => {
+                    if let None = collision_direction {
+                        if let Some(_) = dot_maybe {
+                            collision_direction = Some(direction);
+                        }
+                    }
+                    path.push_back(RayPoint {
+                        coord: coord.into(),
+                        dot: dot_maybe.as_ref(),
+                    });
+                }
                 Err(CanvasError::CoordOutOfBounds) => {
-                    return (path, RayEnd::OutOfBounds);
+                    if coord.x >= self.resolution.width as isize {
+                        return (path, Some(TriDirection::Horizontal));
+                    }
+                    return (path, Some(TriDirection::Vertical));
                 }
             }
             let end_of_ray_reached =
@@ -161,7 +171,7 @@ impl Canvas {
             }
         }
 
-        (path, RayEnd::InBounds)
+        (path, collision_direction)
     }
 
     pub fn check_for_dot_collision(
@@ -169,21 +179,20 @@ impl Canvas {
         this_dot: &Dot,
         next_pos: Vec2<f64>,
     ) -> Option<CollisionReport> {
-        let (ray, ray_end) = self.cast_ray(this_dot.position, next_pos);
+        let (ray, ray_collision_direction) = self.cast_ray(this_dot.position, next_pos);
         let this_dot_coord = this_dot.position.to_rounded_usize();
         let mut prev_point = &RayPoint {
             coord: this_dot_coord,
             dot: self.get(this_dot_coord).unwrap().as_ref(),
         };
-        let stop_dot = |prev_point: &RayPoint<'_>| {
-            CollisionReport {
-                this: DotModification {
-                    id: this_dot.id,
-                    delta_velocity: Some(this_dot.velocity.to_negative()),
-                    delta_position: Some(prev_point.coord.into_f64() - this_dot.position),
-                },
-                other: None,
+        let find_delta_velocity = |ray_collision_direction: &TriDirection| {
+            match ray_collision_direction {
+                TriDirection::Vertical => Vec2::new(0., this_dot.velocity.y),
+                TriDirection::Horizontal => Vec2::new(this_dot.velocity.x, 0.),
+                TriDirection::Diagonal => this_dot.velocity,
             }
+            .to_negative()
+                * 2.
         };
         for point in ray.iter() {
             if let Some(target_dot) = point.dot.as_ref() {
@@ -211,15 +220,34 @@ impl Canvas {
                             delta_position: None,
                         }),
                     });
-                }
-                return Some(stop_dot(prev_point));
+                } 
+                let delta_velocity = find_delta_velocity(ray_collision_direction.as_ref().unwrap());
+                return Some(CollisionReport {
+                    this: DotModification {
+                        id: this_dot.id,
+                        delta_velocity: Some(delta_velocity),
+                        delta_position: Some(prev_point.coord.into_f64() - this_dot.position),
+                    },
+                    other: None,
+                });
             }
             prev_point = point;
         }
-        if let RayEnd::OutOfBounds = ray_end {
-            return Some(stop_dot(prev_point));
-        }
-        None
+
+        // calculate delta velocity IF wall collision happened
+        ray_collision_direction.map(|direction| {
+            let delta_velocity = find_delta_velocity(&direction);
+            println!("HIIIII {:?}", direction);
+            println!("THEERE {:?}\n{:?}", this_dot.velocity, delta_velocity);
+            CollisionReport {
+                this: DotModification {
+                    id: this_dot.id,
+                    delta_velocity: Some(delta_velocity),
+                    delta_position: Some(prev_point.coord.into_f64() - this_dot.position),
+                },
+                other: None,
+            }
+        })
     }
 }
 

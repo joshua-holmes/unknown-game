@@ -45,3 +45,10 @@ impl Model {
     }
 }
 
+#[derive(Debug)]
+pub enum TriDirection {
+    Vertical,
+    Horizontal,
+    Diagonal,
+}
+
