@@ -119,11 +119,11 @@ impl Game {
         // apply position & collision changes
         for dot_to_modify in dots_to_modify {
             let dot = self.palette.get_mut(&dot_to_modify.id).unwrap();
-            if let Some(next_vel) = dot_to_modify.delta_velocity {
-                dot.velocity += next_vel * (1.0 - FRICTION);
+            if let Some(del_vel) = dot_to_modify.delta_velocity {
+                dot.velocity += del_vel * (1.0 - FRICTION);
             }
-            if let Some(next_pos) = dot_to_modify.delta_position {
-                dot.position += next_pos;
+            if let Some(del_pos) = dot_to_modify.delta_position {
+                dot.position += del_pos;
             }
         }
 
