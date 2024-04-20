@@ -31,6 +31,7 @@ impl Material {
 pub struct MaterialProperties {
     /// Higher number means more drag
     /// Terminal velocity is gravity / drag
+    /// Range is 0.0 - 1.0 inclusive
     pub drag: f64,
 
     /// Higher means more bounce

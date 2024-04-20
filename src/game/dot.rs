@@ -78,7 +78,7 @@ impl Dot {
     }
 
     pub fn find_next_velocity(&self, delta_time: Duration) -> Vec2<f64> {
-        let real_drag = self.velocity * self.material.properties().drag;
+        let real_drag = self.velocity * 2. * self.material.properties().drag;
         let accel = GRAVITY - real_drag;
         let new_velocity = self.velocity + (accel * delta_time.as_secs_f64());
 
