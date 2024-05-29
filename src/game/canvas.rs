@@ -4,10 +4,16 @@ use crate::rendering::glsl_types::Resolution;
 
 use super::{
     dot::{CanvasDot, CollisionReport, Dot, DotModification},
-    geometry::TriDirection,
     material::Material,
-    vec2::Vec2,
+    Vec2,
 };
+
+#[derive(Debug)]
+pub enum TriDirection {
+    Vertical,
+    Horizontal,
+    Diagonal,
+}
 
 #[derive(Debug)]
 pub enum CanvasError {

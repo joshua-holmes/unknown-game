@@ -2,18 +2,15 @@ use std::time::Duration;
 
 use crate::rendering::glsl_types::Resolution;
 
-use self::vec2::Vec2;
-
 pub mod dot;
-pub mod geometry;
 pub mod material;
-pub mod rng;
 pub mod id_generator;
 pub mod canvas;
-pub mod vec2;
+pub mod math;
 mod global_game_object;
 
 pub use global_game_object::Game;
+use math::Vec2;
 
 // canvas resolution is the size of the game world in pixels
 const INITIAL_CANVAS_RESOLUTION: Resolution = Resolution {

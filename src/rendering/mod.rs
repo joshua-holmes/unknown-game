@@ -1,3 +1,4 @@
 pub mod glsl_types;
-mod load_shaders;
 pub mod render_engine;
+pub mod geometry;
+mod load_shaders;

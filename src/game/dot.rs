@@ -1,9 +1,8 @@
 use std::time::{Duration, Instant};
 
-use crate::game::rng;
-
 use super::{
-    vec2::Vec2,
+    Vec2,
+    math::rng,
     id_generator::{Id, IdGenerator},
     material::Material,
     GRAVITY,

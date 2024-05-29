@@ -1,9 +1,8 @@
 use std::sync::Arc;
 
-use crate::{
-    game::Game,
-    game::geometry::{Model, Triangle},
-};
+use crate::game::Game;
+use super::geometry::{Model, Triangle};
+
 use vulkano::{
     buffer::subbuffer::Subbuffer,
     buffer::{Buffer, BufferCreateInfo, BufferUsage},

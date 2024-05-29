@@ -10,7 +10,7 @@ use crate::rendering::glsl_types::Resolution;
 use super::{
     canvas::{Canvas, CanvasError},
     dot::{Dot, DotModification},
-    vec2::Vec2,
+    Vec2,
     id_generator::{Id, IdGenerator},
     material::Material,
     CURSOR_SIZE, DELAY_BETWEEN_DOTS, INITIAL_CANVAS_RESOLUTION, FRICTION,

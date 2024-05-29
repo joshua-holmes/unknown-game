@@ -1,4 +1,4 @@
-use crate::rendering::glsl_types::Vertex;
+use super::glsl_types::Vertex;
 
 #[derive(Debug)]
 pub struct Triangle(Vertex, Vertex, Vertex);
@@ -43,12 +43,5 @@ impl Model {
         let verticies_per_triangle = 3;
         self.0.len() as u32 * verticies_per_triangle
     }
-}
-
-#[derive(Debug)]
-pub enum TriDirection {
-    Vertical,
-    Horizontal,
-    Diagonal,
 }
 
