@@ -8,7 +8,6 @@ pub mod dot;
 pub mod geometry;
 pub mod material;
 pub mod rng;
-pub mod enums;
 pub mod id_generator;
 pub mod canvas;
 pub mod vec2;

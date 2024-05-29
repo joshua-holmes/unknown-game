@@ -10,12 +10,16 @@ use crate::rendering::glsl_types::Resolution;
 use super::{
     canvas::{Canvas, CanvasError},
     dot::{Dot, DotModification},
-    enums::CoordConversion,
     vec2::Vec2,
     id_generator::{Id, IdGenerator},
     material::Material,
     CURSOR_SIZE, DELAY_BETWEEN_DOTS, INITIAL_CANVAS_RESOLUTION, FRICTION,
 };
+
+pub enum CoordConversion<T> {
+    Converted(T),
+    OutOfBounds,
+}
 
 pub struct Game {
     pub delta_time: Duration,
