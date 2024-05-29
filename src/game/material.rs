@@ -14,7 +14,7 @@ impl Material {
             },
             Material::Sand => MaterialProperties {
                 drag: 0.,
-                bounce: 1.0,
+                bounce: 0.,
             },
             Material::Dirt => MaterialProperties {
                 drag: 0.,

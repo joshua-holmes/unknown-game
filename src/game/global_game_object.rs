@@ -40,7 +40,7 @@ impl Game {
         let dot = Dot::new(
             &mut dot_id_generator,
             Material::Sand,
-            Vec2::new(351., 10.),
+            Vec2::new(0., 100.),
             Vec2::new(100., 0.),
         );
         palette.insert(dot.id, dot);
@@ -162,10 +162,10 @@ impl Game {
                     let radius = CURSOR_SIZE;
                     let top_left = (coord - radius)
                         .clamp_to_resolution(self.canvas.resolution)
-                        .to_rounded_usize();
+                        .to_rounded_isize();
                     let bottom_right = (coord + radius)
                         .clamp_to_resolution(self.canvas.resolution)
-                        .to_rounded_usize();
+                        .to_rounded_isize();
                     for x in top_left.x..=bottom_right.x {
                         for y in top_left.y..=bottom_right.y {
                             let point = Vec2::new(x, y);
@@ -184,7 +184,7 @@ impl Game {
                             // add new dot to palette, error if dot is already there
                             let new_dot = Dot::new(
                                 &mut self.dot_id_generator,
-                                Material::Dirt,
+                                Material::Sand,
                                 point.into_f64(),
                                 Vec2::new(0., 0.),
                             );
@@ -239,7 +239,7 @@ impl Game {
             match self.canvas.get_mut(
                 dot.position
                     .clamp_to_resolution(self.resolution)
-                    .to_rounded_usize(),
+                    .to_rounded_isize(),
             ) {
                 Ok(maybe_canvas_dot) => {
                     *maybe_canvas_dot = Some(dot.into());

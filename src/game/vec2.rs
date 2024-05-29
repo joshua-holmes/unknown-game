@@ -98,6 +98,18 @@ impl Vec2<isize> {
     pub fn into_f64(&self) -> Vec2<f64> {
         Vec2::new(self.x as f64, self.y as f64)
     }
+    pub fn down(&self) -> Self {
+        Self::new(self.x, self.y + 1)
+    }
+    pub fn up(&self) -> Self {
+        Self::new(self.x, self.y - 1)
+    }
+    pub fn left(&self) -> Self {
+        Self::new(self.x - 1, self.y)
+    }
+    pub fn right(&self) -> Self {
+        Self::new(self.x + 1, self.y)
+    }
 }
 impl<T> From<PhysicalPosition<T>> for Vec2<T> {
     fn from(value: PhysicalPosition<T>) -> Self {

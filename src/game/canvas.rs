@@ -16,7 +16,7 @@ pub enum CanvasError {
 
 #[derive(Debug)]
 pub struct RayPoint<'a> {
-    pub coord: Vec2<usize>,
+    pub coord: Vec2<isize>,
     pub dot: Option<&'a CanvasDot>,
 }
 
@@ -42,7 +42,12 @@ impl Canvas {
             .map(|maybe_dot| maybe_dot.map_or(Material::EmptySpace as u8, |dot| dot.material as u8))
     }
 
-    pub fn get(&self, coord: Vec2<usize>) -> Result<&Option<CanvasDot>, CanvasError> {
+    pub fn get(&self, coord: Vec2<isize>) -> Result<&Option<CanvasDot>, CanvasError> {
+        let coord = if coord.x < 0 || coord.y < 0 {
+            return Err(CanvasError::CoordOutOfBounds);
+        } else {
+            Vec2::new(coord.x as usize, coord.y as usize)
+        };
         Ok(self
             .grid
             .get(coord.y)
@@ -51,7 +56,12 @@ impl Canvas {
             .ok_or(CanvasError::CoordOutOfBounds)?)
     }
 
-    pub fn get_mut(&mut self, coord: Vec2<usize>) -> Result<&mut Option<CanvasDot>, CanvasError> {
+    pub fn get_mut(&mut self, coord: Vec2<isize>) -> Result<&mut Option<CanvasDot>, CanvasError> {
+        let coord = if coord.x < 0 || coord.y < 0 {
+            return Err(CanvasError::CoordOutOfBounds);
+        } else {
+            Vec2::new(coord.x as usize, coord.y as usize)
+        };
         Ok(self
             .grid
             .get_mut(coord.y)
@@ -180,7 +190,7 @@ impl Canvas {
         next_pos: Vec2<f64>,
     ) -> Option<CollisionReport> {
         let (ray, ray_collision_direction) = self.cast_ray(this_dot.position, next_pos);
-        let this_dot_coord = this_dot.position.to_rounded_usize();
+        let this_dot_coord = this_dot.position.to_rounded_isize();
         let mut prev_point = &RayPoint {
             coord: this_dot_coord,
             dot: self.get(this_dot_coord).unwrap().as_ref(),

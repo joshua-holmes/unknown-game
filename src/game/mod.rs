@@ -30,7 +30,7 @@ const DELAY_BETWEEN_DOTS: Duration = Duration::from_millis(50);
 
 // percentage of energy lost due to friction when 2 dots collide
 // acceptable range is 0.0 to 1.0, higher is more friction
-const FRICTION: f64 = 0.2;
+const FRICTION: f64 = 0.0;
 
 // size of cursor that spawns dots; this is the radius of the cursor
 const CURSOR_SIZE: f64 = 5.;
