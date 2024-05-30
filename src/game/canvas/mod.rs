@@ -1,15 +1,14 @@
 use std::collections::VecDeque;
 
 use crate::rendering::glsl_types::Resolution;
+pub mod dot;
 
-use super::{
-    dot::{CanvasDot, CollisionReport, Dot, DotModification},
-    material::Material,
-    Vec2,
-};
+use super::{material::Material, Vec2};
+pub use dot::Dot;
+use dot::{CanvasDot, CollisionReport, DotModification};
 
 #[derive(Debug)]
-pub enum TriDirection {
+enum TriDirection {
     Vertical,
     Horizontal,
     Diagonal,
@@ -21,7 +20,7 @@ pub enum CanvasError {
 }
 
 #[derive(Debug)]
-pub struct RayPoint<'a> {
+struct RayPoint<'a> {
     pub coord: Vec2<isize>,
     pub dot: Option<&'a CanvasDot>,
 }

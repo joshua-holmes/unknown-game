@@ -1,11 +1,10 @@
 use std::time::{Duration, Instant};
 
-use super::{
-    Vec2,
-    math::rng,
+use crate::game::{
     id_generator::{Id, IdGenerator},
     material::Material,
-    GRAVITY,
+    math::rng,
+    Vec2, GRAVITY,
 };
 
 /// Special version of `Dot` that contains less data
@@ -96,7 +95,8 @@ impl Dot {
 
         // materials with less drag need to be traveling faster to have this effect
         let terminal_velocity = GRAVITY.pythagorean_theorem() / drag;
-        let material_is_light_enough = self.velocity.pythagorean_theorem() >= (terminal_velocity * 0.25);
+        let material_is_light_enough =
+            self.velocity.pythagorean_theorem() >= (terminal_velocity * 0.25);
 
         // the time required between pixels shifts
         let offset_delay = Duration::from_secs_f32(0.5);

@@ -2,12 +2,11 @@ use std::time::Duration;
 
 use crate::rendering::glsl_types::Resolution;
 
-pub mod dot;
-pub mod material;
-pub mod id_generator;
 pub mod canvas;
-pub mod math;
 mod global_game_object;
+pub mod id_generator;
+pub mod material;
+pub mod math;
 
 pub use global_game_object::Game;
 use math::Vec2;
@@ -30,4 +29,3 @@ const FRICTION: f64 = 0.0;
 
 // size of cursor that spawns dots; this is the radius of the cursor
 const CURSOR_SIZE: f64 = 5.;
-

@@ -1,6 +1,9 @@
-use std::{ops::{Add, AddAssign, Div, DivAssign, Mul, MulAssign, Sub, SubAssign}, hash::Hash};
-use winit::dpi::{PhysicalPosition, PhysicalSize};
 use crate::rendering::glsl_types::Resolution;
+use std::{
+    hash::Hash,
+    ops::{Add, AddAssign, Div, DivAssign, Mul, MulAssign, Sub, SubAssign},
+};
+use winit::dpi::{PhysicalPosition, PhysicalSize};
 
 #[derive(Clone, Copy, Debug, Hash, PartialEq, Eq)]
 pub struct Vec2<T> {
@@ -46,14 +49,14 @@ impl<T> Vec2<T> {
 
     pub fn clamp_to_resolution(&self, resolution: Resolution) -> Self
     where
-        T: From<i32> + Copy + PartialOrd
+        T: From<i32> + Copy + PartialOrd,
     {
         self.clamp(
             Some(Vec2::new(T::from(0), T::from(0))),
             Some(Vec2::new(
                 T::from(resolution.width - 1),
-                T::from(resolution.height - 1)
-            ))
+                T::from(resolution.height - 1),
+            )),
         )
     }
 }

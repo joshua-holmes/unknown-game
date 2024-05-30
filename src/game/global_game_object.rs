@@ -8,12 +8,10 @@ use winit::dpi::{PhysicalPosition, PhysicalSize};
 use crate::rendering::glsl_types::Resolution;
 
 use super::{
-    canvas::{Canvas, CanvasError},
-    dot::{Dot, DotModification},
-    Vec2,
+    canvas::{dot::DotModification, Canvas, CanvasError, Dot},
     id_generator::{Id, IdGenerator},
     material::Material,
-    CURSOR_SIZE, DELAY_BETWEEN_DOTS, INITIAL_CANVAS_RESOLUTION, FRICTION,
+    Vec2, CURSOR_SIZE, DELAY_BETWEEN_DOTS, FRICTION, INITIAL_CANVAS_RESOLUTION,
 };
 
 pub enum CoordConversion<T> {
@@ -91,8 +89,7 @@ impl Game {
         let mut visited_collisions = HashSet::new();
         for dot in self.palette.values_mut() {
             // let offset_from_drag = dot.find_pos_offset_from_drag();
-            let next_pos =
-                dot.find_next_position(self.delta_time);
+            let next_pos = dot.find_next_position(self.delta_time);
             if next_pos.to_rounded_isize() != dot.position.to_rounded_isize() {
                 let collision_check = self.canvas.check_for_dot_collision(&dot, next_pos);
                 if let Some(collided_dots) = collision_check {

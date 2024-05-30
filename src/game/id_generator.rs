@@ -52,7 +52,7 @@ impl IdGenerator {
 
 #[cfg(test)]
 mod tests {
-    use super::{Id, IdGenerator, IdGenerationError};
+    use super::{Id, IdGenerationError, IdGenerator};
 
     #[test]
     fn test_first_id_is_0() {
@@ -81,7 +81,10 @@ mod tests {
                 _ => assert!(false, "Ran into an unexpected error -> {:?}", err),
             }
         } else {
-            assert!(false, "IdGenerator did not return error when it ran out of ids");
+            assert!(
+                false,
+                "IdGenerator did not return error when it ran out of ids"
+            );
         }
     }
 
@@ -95,7 +98,10 @@ mod tests {
         if let Some(id) = id_gen.deleted_ids.pop() {
             assert_eq!(id, 30);
         } else {
-            assert!(false, "Id did not get deleted or was not added to the deletion vector");
+            assert!(
+                false,
+                "Id did not get deleted or was not added to the deletion vector"
+            );
         }
     }
 
@@ -120,7 +126,10 @@ mod tests {
                 _ => assert!(false, "Reached unexpected error -> {:?}", err),
             }
         } else {
-            assert!(false, "Non existent id was deleted, when it should have returned an error");
+            assert!(
+                false,
+                "Non existent id was deleted, when it should have returned an error"
+            );
         }
     }
 
@@ -136,7 +145,10 @@ mod tests {
                 _ => assert!(false, "Reached unexpected error -> {:?}", err),
             }
         } else {
-            assert!(false, "Non existent id was deleted, when it should have returned an error");
+            assert!(
+                false,
+                "Non existent id was deleted, when it should have returned an error"
+            );
         }
     }
 }

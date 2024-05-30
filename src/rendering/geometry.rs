@@ -44,4 +44,3 @@ impl Model {
         self.0.len() as u32 * verticies_per_triangle
     }
 }
-

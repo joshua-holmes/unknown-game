@@ -27,7 +27,7 @@ fn now_in_micros() -> u128 {
 
 #[cfg(test)]
 mod tests {
-    use super::{rand_f64, rand_bool};
+    use super::{rand_bool, rand_f64};
 
     #[test]
     fn test_rand_f64() {
