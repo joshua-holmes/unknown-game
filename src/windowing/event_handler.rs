@@ -8,7 +8,7 @@ use winit::{
 
 use crate::{game::Game, rendering::render_engine::RenderEngine};
 
-use super::state::WindowState;
+use super::state::{MouseState, WindowState};
 
 pub fn handle_event(
     event: Event<()>,
@@ -41,21 +41,26 @@ pub fn handle_event(
         Event::WindowEvent {
             event:
                 WindowEvent::MouseInput {
-                    button: MouseButton::Left,
+                    button,
                     state,
                     ..
                 },
             ..
         } => {
-            window_state.left_mouse_btn = state;
+            if let ElementState::Released = state {
+                window_state.mouse_state = MouseState::Released;
+            } else if let MouseButton::Right = button {
+                window_state.mouse_state = MouseState::RightPressed;
+            } else if let MouseButton::Left = button {
+                window_state.mouse_state = MouseState::LeftPressed;
+            }
         }
         Event::MainEventsCleared => {
-            if let ElementState::Pressed = window_state.left_mouse_btn {
-                game.spawn_dots(
-                    &window_state.cursor_position,
-                    &window_state.window.inner_size(),
-                );
-            }
+            game.handle_spawn_dots(
+                &window_state.cursor_position,
+                &window_state.window.inner_size(),
+                &window_state.mouse_state,
+            );
             game.set_time();
             let delta_time = game.delta_time;
             game.set_next_frame(delta_time);

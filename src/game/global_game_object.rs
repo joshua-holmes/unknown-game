@@ -2,6 +2,8 @@ use std::time::{Duration, Instant};
 
 use winit::dpi::{PhysicalPosition, PhysicalSize};
 
+use crate::windowing::state::MouseState;
+
 use super::{
     canvas::Canvas,
     material::Material,
@@ -52,19 +54,26 @@ impl Game {
         self.frame_count += 1;
     }
 
-    pub fn spawn_dots(
+    pub fn handle_spawn_dots(
         &mut self,
         cursor_position: &PhysicalPosition<f64>,
         window_resolution: &PhysicalSize<u32>,
+        mouse_state: &MouseState,
     ) {
-        if self.last_dot_spawned.elapsed() >= DELAY_BETWEEN_DOTS {
-            match self.physical_position_to_game_coordinates(cursor_position, window_resolution) {
-                CoordConversion::Converted(coord) => {
-                    self.canvas.spawn_circle_of_dots(CURSOR_SIZE, coord);
-                    self.last_dot_spawned = Instant::now();
-                }
-                CoordConversion::OutOfBounds => println!("WARNING! Clicked outside of game space"),
+        if self.last_dot_spawned.elapsed() < DELAY_BETWEEN_DOTS {
+            return;
+        }
+        let material = match mouse_state {
+            MouseState::Released => return,
+            MouseState::LeftPressed => Material::Orange,
+            MouseState::RightPressed => Material::Blue,
+        };
+        match self.physical_position_to_game_coordinates(cursor_position, window_resolution) {
+            CoordConversion::Converted(coord) => {
+                self.canvas.spawn_circle_of_dots(CURSOR_SIZE, coord, material);
+                self.last_dot_spawned = Instant::now();
             }
+            CoordConversion::OutOfBounds => println!("WARNING! Clicked outside of game space"),
         }
     }
 

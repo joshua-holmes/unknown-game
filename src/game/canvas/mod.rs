@@ -68,7 +68,7 @@ impl Canvas {
         Ok(())
     }
 
-    pub fn spawn_circle_of_dots(&mut self, radius: f64, coord: Vec2<f64>) {
+    pub fn spawn_circle_of_dots(&mut self, radius: f64, coord: Vec2<f64>, material: Material) {
         let top_left = (coord - radius)
             .clamp_to_resolution(self.resolution)
             .to_rounded_isize();
@@ -91,7 +91,7 @@ impl Canvas {
                 }
 
                 // add new dot to palette, error if dot is already there
-                self.spawn_dot(Material::Sand, point.into_f64(), Vec2::new(0., 0.))
+                self.spawn_dot(material, point.into_f64(), Vec2::new(0., 0.))
                     .expect(format!("Dot already exists in pos: {:?}", point.into_f64()).as_str());
             }
         }
