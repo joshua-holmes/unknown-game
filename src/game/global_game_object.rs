@@ -27,7 +27,7 @@ impl Game {
         let mut canvas = Canvas::new(INITIAL_CANVAS_RESOLUTION);
 
         canvas.spawn_dot(Material::Blue, Vec2::new(100., 100.), Vec2::new(50., -50.));
-        canvas.spawn_dot(Material::Orange, Vec2::new(300., 165.), Vec2::new(-100., -100.));
+        canvas.spawn_dot(Material::Orange, Vec2::new(300., 167.), Vec2::new(-100., -100.));
 
         let mut game = Self {
             canvas,
