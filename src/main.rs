@@ -1,3 +1,5 @@
+#![feature(map_try_insert)]
+
 use game::Game;
 use winit::event_loop::EventLoop;
 

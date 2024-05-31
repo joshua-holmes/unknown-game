@@ -1,17 +1,17 @@
-pub type Id = u32;
+pub type DotId = u32;
 
 #[derive(Debug)]
-pub enum IdGenerationError {
+pub enum DotIdGenError {
     RanOutOfIds,
     DeletedNonExistentId,
 }
 
-pub struct IdGenerator {
-    largest_id: Option<Id>,
-    deleted_ids: Vec<Id>,
+pub struct DotIdGen {
+    largest_id: Option<DotId>,
+    deleted_ids: Vec<DotId>,
 }
 
-impl IdGenerator {
+impl DotIdGen {
     pub fn new() -> Self {
         Self {
             largest_id: None,
@@ -19,13 +19,13 @@ impl IdGenerator {
         }
     }
 
-    pub fn new_id(&mut self) -> Result<Id, IdGenerationError> {
+    pub fn new_id(&mut self) -> Result<DotId, DotIdGenError> {
         if let Some(id) = self.deleted_ids.pop() {
             Ok(id)
         } else {
             if let Some(id) = self.largest_id.as_mut() {
-                if *id == Id::MAX {
-                    return Err(IdGenerationError::RanOutOfIds);
+                if *id == DotId::MAX {
+                    return Err(DotIdGenError::RanOutOfIds);
                 }
                 *id += 1;
                 Ok(*id)
@@ -36,33 +36,33 @@ impl IdGenerator {
         }
     }
 
-    pub fn mark_id_deleted(&mut self, id: Id) -> Result<(), IdGenerationError> {
+    pub fn mark_id_deleted(&mut self, id: DotId) -> Result<(), DotIdGenError> {
         if let Some(largest_id) = self.largest_id {
             if id <= largest_id {
                 self.deleted_ids.push(id);
                 Ok(())
             } else {
-                Err(IdGenerationError::DeletedNonExistentId)
+                Err(DotIdGenError::DeletedNonExistentId)
             }
         } else {
-            Err(IdGenerationError::DeletedNonExistentId)
+            Err(DotIdGenError::DeletedNonExistentId)
         }
     }
 }
 
 #[cfg(test)]
 mod tests {
-    use super::{Id, IdGenerationError, IdGenerator};
+    use super::{DotId, DotIdGenError, DotIdGen};
 
     #[test]
     fn test_first_id_is_0() {
-        let mut id_gen = IdGenerator::new();
+        let mut id_gen = DotIdGen::new();
         assert_eq!(id_gen.new_id().unwrap(), 0);
     }
 
     #[test]
     fn test_new_id_is_larger_than_last_id() {
-        let mut id_gen = IdGenerator {
+        let mut id_gen = DotIdGen {
             largest_id: Some(0),
             deleted_ids: Vec::new(),
         };
@@ -71,26 +71,26 @@ mod tests {
 
     #[test]
     fn test_maxing_out_ids_panics() {
-        let mut id_gen = IdGenerator {
-            largest_id: Some(Id::MAX),
+        let mut id_gen = DotIdGen {
+            largest_id: Some(DotId::MAX),
             deleted_ids: Vec::new(),
         };
         if let Err(err) = id_gen.new_id() {
             match err {
-                IdGenerationError::RanOutOfIds => assert!(true),
+                DotIdGenError::RanOutOfIds => assert!(true),
                 _ => assert!(false, "Ran into an unexpected error -> {:?}", err),
             }
         } else {
             assert!(
                 false,
-                "IdGenerator did not return error when it ran out of ids"
+                "DotIdGen did not return error when it ran out of ids"
             );
         }
     }
 
     #[test]
     fn test_id_gets_deleted() {
-        let mut id_gen = IdGenerator {
+        let mut id_gen = DotIdGen {
             largest_id: Some(80),
             deleted_ids: Vec::new(),
         };
@@ -100,14 +100,14 @@ mod tests {
         } else {
             assert!(
                 false,
-                "Id did not get deleted or was not added to the deletion vector"
+                "DotId did not get deleted or was not added to the deletion vector"
             );
         }
     }
 
     #[test]
     fn test_deleted_ids_get_used() {
-        let mut id_gen = IdGenerator {
+        let mut id_gen = DotIdGen {
             largest_id: Some(80),
             deleted_ids: vec![30],
         };
@@ -116,13 +116,13 @@ mod tests {
 
     #[test]
     fn test_cant_delete_id_before_any_are_made() {
-        let mut id_gen = IdGenerator {
+        let mut id_gen = DotIdGen {
             largest_id: None,
             deleted_ids: Vec::new(),
         };
         if let Err(err) = id_gen.mark_id_deleted(0) {
             match err {
-                IdGenerationError::DeletedNonExistentId => assert!(true),
+                DotIdGenError::DeletedNonExistentId => assert!(true),
                 _ => assert!(false, "Reached unexpected error -> {:?}", err),
             }
         } else {
@@ -135,13 +135,13 @@ mod tests {
 
     #[test]
     fn test_cant_delete_non_existent_id_after_some_are_made() {
-        let mut id_gen = IdGenerator {
+        let mut id_gen = DotIdGen {
             largest_id: Some(4),
             deleted_ids: Vec::new(),
         };
         if let Err(err) = id_gen.mark_id_deleted(5) {
             match err {
-                IdGenerationError::DeletedNonExistentId => assert!(true),
+                DotIdGenError::DeletedNonExistentId => assert!(true),
                 _ => assert!(false, "Reached unexpected error -> {:?}", err),
             }
         } else {

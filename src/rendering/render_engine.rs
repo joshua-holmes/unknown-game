@@ -589,7 +589,7 @@ impl RenderEngine {
             .write()
             .unwrap()
             .iter_mut()
-            .zip(game.canvas.iter_materials_as_bytes())
+            .zip(game.canvas.grid.iter_materials_as_bytes())
         {
             *mat = new_mat;
         }
@@ -667,7 +667,7 @@ impl RenderEngine {
 
         // canvas setup
         let canvas_buffer =
-            Self::create_canvas_buffer(memory_allocator.clone(), game.canvas.iter_materials_as_bytes().collect());
+            Self::create_canvas_buffer(memory_allocator.clone(), game.canvas.grid.iter_materials_as_bytes().collect());
 
         // resolutions_setup
         let window_res_buffer = Self::create_resolution_buffer(
@@ -675,7 +675,7 @@ impl RenderEngine {
             Resolution::from(window.inner_size()),
         );
         let canvas_res_buffer =
-            Self::create_resolution_buffer(memory_allocator.clone(), game.resolution);
+            Self::create_resolution_buffer(memory_allocator.clone(), game.canvas.resolution);
 
         // setup render pass
         let render_pass = Self::create_render_pass(device.clone(), swapchain.clone());

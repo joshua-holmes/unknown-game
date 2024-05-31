@@ -4,7 +4,6 @@ use crate::rendering::glsl_types::Resolution;
 
 pub mod canvas;
 mod global_game_object;
-pub mod id_generator;
 pub mod material;
 pub mod math;
 
