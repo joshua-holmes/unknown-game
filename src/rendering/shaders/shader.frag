@@ -33,8 +33,10 @@ vec3 get_color(uint material) {
         return hex_to_vec3(0xd7c9aa);
     case 2: // dirt
         return hex_to_vec3(0x564138);
-    case 3: // water
+    case 3: // blue
         return hex_to_vec3(0x36C9C6);
+    case 4: // blue
+        return hex_to_vec3(0xC03221);
     default:
         return hex_to_vec3(0x000000);
     }

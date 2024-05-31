@@ -24,10 +24,8 @@ impl Game {
     pub fn new() -> Self {
         let mut canvas = Canvas::new(INITIAL_CANVAS_RESOLUTION);
 
-        canvas.spawn_dot(Material::Sand, Vec2::new(0., 100.), Vec2::new(100., 0.));
-        for i in 0..canvas.resolution.width {
-            canvas.spawn_dot(Material::Sand, Vec2::new(i as f64, 499.), Vec2::new(0., 0.));
-        }
+        canvas.spawn_dot(Material::Blue, Vec2::new(100., 100.), Vec2::new(50., -50.));
+        canvas.spawn_dot(Material::Orange, Vec2::new(300., 165.), Vec2::new(-100., -100.));
 
         let mut game = Self {
             canvas,

@@ -3,7 +3,8 @@ pub enum Material {
     EmptySpace = 0x00,
     Sand = 0x01,
     Dirt = 0x02,
-    Water = 0x03,
+    Blue = 0x03,
+    Orange = 0x04,
 }
 impl Material {
     pub fn properties(&self) -> MaterialProperties {
@@ -20,7 +21,11 @@ impl Material {
                 drag: 0.,
                 bounce: 0.,
             },
-            Material::Water => MaterialProperties {
+            Material::Blue => MaterialProperties {
+                drag: 0.,
+                bounce: 0.,
+            },
+            Material::Orange => MaterialProperties {
                 drag: 0.,
                 bounce: 0.,
             },
